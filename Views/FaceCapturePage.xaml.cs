@@ -21,6 +21,11 @@ public partial class FaceCapturePage : ContentPage
     protected override async void OnDisappearing()
     {
         await _vm.StopCameraAsync();
+        if (_vm.Camera is CommunityToolkit.Maui.Views.CameraView cameraView)
+        {
+            cameraView.Handler?.DisconnectHandler();
+            (cameraView as IDisposable)?.Dispose();
+        }
         CameraHost.Children.Clear();
         base.OnDisappearing();
     }

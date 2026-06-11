@@ -12,6 +12,8 @@ public partial class ProfileViewModel : ObservableObject
     private readonly IBiometricStatsService _statsService;
     private readonly ISessionService _session;
     private readonly INavigationService _navigation;
+    private readonly IAuthService _authService;
+    private readonly IFaceRecognitionService _faceService;
 
     [ObservableProperty]
     private string _firstName = string.Empty;
@@ -44,7 +46,22 @@ public partial class ProfileViewModel : ObservableObject
     private string _faceCapturedText = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FaceModalImage))]
     private ImageSource? _facePreview;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FaceModalImage))]
+    private ImageSource? _facePreviewWithMinutiae;
+
+    [ObservableProperty]
+    private bool _showMinutiae;
+
+    partial void OnShowMinutiaeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(FaceModalImage));
+    }
+
+    public ImageSource? FaceModalImage => ShowMinutiae ? FacePreviewWithMinutiae : FacePreview;
 
     [ObservableProperty]
     private bool _hasVoiceTemplate;
@@ -64,16 +81,23 @@ public partial class ProfileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isBusy;
 
+    [ObservableProperty]
+    private bool _isFaceModalOpen;
+
     public ProfileViewModel(
         IUserService userService,
         IBiometricStatsService statsService,
         ISessionService session,
-        INavigationService navigation)
+        INavigationService navigation,
+        IAuthService authService,
+        IFaceRecognitionService faceService)
     {
         _userService = userService;
         _statsService = statsService;
         _session = session;
         _navigation = navigation;
+        _authService = authService;
+        _faceService = faceService;
     }
 
     [RelayCommand]
@@ -103,6 +127,10 @@ public partial class ProfileViewModel : ObservableObject
             FaceCapturedText = overview.FaceCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
             FacePreview = overview.FacePreviewImage is { Length: > 0 } bytes
                 ? ImageSource.FromStream(() => new MemoryStream(bytes))
+                : null;
+
+            FacePreviewWithMinutiae = overview.FacePreviewImage is { Length: > 0 } bytes2
+                ? ImageSource.FromStream(() => new MemoryStream(_faceService.DrawMinutiae(bytes2)))
                 : null;
 
             HasVoiceTemplate = overview.HasVoiceTemplate;
@@ -186,5 +214,27 @@ public partial class ProfileViewModel : ObservableObject
 
         if (success)
             await LoadAsync();
+    }
+
+    [RelayCommand]
+    private async Task LogoutAsync()
+    {
+        await _authService.LogoutAsync();
+        await _navigation.GoToLoginAsync();
+    }
+
+    [RelayCommand]
+    private void OpenFaceModal()
+    {
+        if (HasFaceTemplate)
+        {
+            IsFaceModalOpen = true;
+        }
+    }
+
+    [RelayCommand]
+    private void CloseFaceModal()
+    {
+        IsFaceModalOpen = false;
     }
 }

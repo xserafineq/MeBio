@@ -26,7 +26,7 @@ public class LoginChartDrawable : IDrawable
         var maxVal = Stats.Max(s => Math.Max(s.SuccessCount, s.FailCount));
         if (maxVal == 0) maxVal = 1;
 
-        var chartHeight = dirtyRect.Height - padding * 2 - 18;
+        var chartHeight = dirtyRect.Height - padding * 2 - 36;
         var x = dirtyRect.Left + padding;
 
         foreach (var stat in Stats)
@@ -45,6 +45,22 @@ public class LoginChartDrawable : IDrawable
             canvas.FontSize = 10;
             canvas.DrawString(stat.Date.ToString("dd.MM"), x, baseY + 14, barWidth, 14,
                 HorizontalAlignment.Center, VerticalAlignment.Top);
+
+            // Dodanie wartości nad słupkami (jeśli są większe niż 0)
+            canvas.FontSize = 12;
+            if (stat.SuccessCount > 0)
+            {
+                canvas.FontColor = Color.FromArgb("#00E676");
+                canvas.DrawString(stat.SuccessCount.ToString(), x, baseY - successH - 16, barWidth / 2 - 2, 16,
+                    HorizontalAlignment.Center, VerticalAlignment.Bottom);
+            }
+
+            if (stat.FailCount > 0)
+            {
+                canvas.FontColor = Color.FromArgb("#FF5252");
+                canvas.DrawString(stat.FailCount.ToString(), x + barWidth / 2 + 2, baseY - failH - 16, barWidth / 2 - 2, 16,
+                    HorizontalAlignment.Center, VerticalAlignment.Bottom);
+            }
 
             x += slotWidth;
         }

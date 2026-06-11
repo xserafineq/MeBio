@@ -2,6 +2,7 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:MeBio.ViewModels"
+             xmlns:views="clr-namespace:MeBio.Views"
              x:Class="MeBio.Views.ProfilePage"
              x:DataType="vm:ProfileViewModel"
              Title="Profil"
@@ -9,121 +10,130 @@
 
     <ContentPage.ToolbarItems>
         <ToolbarItem Text="Odśwież" Command="{Binding LoadCommand}" />
+        <ToolbarItem Text="Wyloguj" Command="{Binding LogoutCommand}" />
     </ContentPage.ToolbarItems>
 
-    <ScrollView>
-        <VerticalStackLayout Padding="16" Spacing="16">
-            <Label Text="{Binding FirstName, StringFormat='Witaj, {0}'}" Style="{StaticResource SectionTitle}" />
-            <Label Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}"
-                   IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+    <Grid>
+        <ScrollView>
+            <VerticalStackLayout Padding="16" Spacing="16">
+                <Label Text="{Binding FirstName, StringFormat='Witaj, {0}'}" Style="{StaticResource SectionTitle}" />
+                <Label Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}"
+                       IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}" />
 
-            <Border Style="{StaticResource CardBorder}">
-                <VerticalStackLayout Padding="20" Spacing="12">
-                    <Label Text="Dane osobowe" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="20" Spacing="12">
+                        <Label Text="Dane osobowe" Style="{StaticResource FieldLabel}" />
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <Label Text="Imię" FontSize="11" TextColor="{StaticResource MutedText}" />
-                            <Label Text="{Binding FirstName}" FontSize="15" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="Nazwisko" FontSize="11" TextColor="{StaticResource MutedText}" />
-                            <Label Text="{Binding LastName}" FontSize="15" />
-                        </VerticalStackLayout>
-                    </Grid>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Imię" FontSize="11" TextColor="{StaticResource MutedText}" />
+                                <Label Text="{Binding FirstName}" FontSize="15" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="Nazwisko" FontSize="11" TextColor="{StaticResource MutedText}" />
+                                <Label Text="{Binding LastName}" FontSize="15" />
+                            </VerticalStackLayout>
+                        </Grid>
 
-                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
-                        <VerticalStackLayout Grid.Column="0" Spacing="4">
-                            <Label Text="Wiek" FontSize="11" TextColor="{StaticResource MutedText}" />
-                            <Label Text="{Binding AgeText}" FontSize="15" />
-                        </VerticalStackLayout>
-                        <VerticalStackLayout Grid.Column="1" Spacing="4">
-                            <Label Text="Płeć" FontSize="11" TextColor="{StaticResource MutedText}" />
-                            <Label Text="{Binding GenderText}" FontSize="15" />
-                        </VerticalStackLayout>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
+                        <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="Wiek" FontSize="11" TextColor="{StaticResource MutedText}" />
+                                <Label Text="{Binding AgeText}" FontSize="15" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="4">
+                                <Label Text="Płeć" FontSize="11" TextColor="{StaticResource MutedText}" />
+                                <Label Text="{Binding GenderText}" FontSize="15" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-            <Border Style="{StaticResource CardBorder}">
-                <VerticalStackLayout Padding="20" Spacing="12">
-                    <Label Text="Edycja konta" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="20" Spacing="12">
+                        <Label Text="Edycja konta" Style="{StaticResource FieldLabel}" />
 
-                    <Label Text="Email" Style="{StaticResource FieldLabel}" />
-                    <Entry Text="{Binding Email}" Keyboard="Email" Style="{StaticResource DarkEntry}" />
+                        <Label Text="Email" Style="{StaticResource FieldLabel}" />
+                        <Entry Text="{Binding Email}" Keyboard="Email" Style="{StaticResource DarkEntry}" />
 
-                    <Label Text="Nowe hasło (opcjonalnie)" Style="{StaticResource FieldLabel}" />
-                    <Entry Text="{Binding NewPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
+                        <Label Text="Nowe hasło (opcjonalnie)" Style="{StaticResource FieldLabel}" />
+                        <Entry Text="{Binding NewPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
 
-                    <Label Text="Powtórz nowe hasło" Style="{StaticResource FieldLabel}" />
-                    <Entry Text="{Binding ConfirmPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
+                        <Label Text="Powtórz nowe hasło" Style="{StaticResource FieldLabel}" />
+                        <Entry Text="{Binding ConfirmPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
 
-                    <Button Text="Zapisz zmiany" Command="{Binding SaveCommand}" Style="{StaticResource AccentButton}" />
-                </VerticalStackLayout>
-            </Border>
+                        <Button Text="Zapisz zmiany" Command="{Binding SaveCommand}" Style="{StaticResource AccentButton}" />
+                    </VerticalStackLayout>
+                </Border>
 
-            <Border Style="{StaticResource CardBorder}">
-                <VerticalStackLayout Padding="16" Spacing="12">
-                    <Label Text="Biometria twarzy" Style="{StaticResource FieldLabel}" />
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="12">
+                        <Label Text="Biometria twarzy" Style="{StaticResource FieldLabel}" />
 
-                    <Grid ColumnDefinitions="120,*" ColumnSpacing="16">
-                        <Border WidthRequest="120" HeightRequest="120" Stroke="{StaticResource BorderColor}"
-                                BackgroundColor="{StaticResource MidnightBlue}" StrokeShape="RoundRectangle 8">
-                            <Grid>
-                                <Image Source="{Binding FacePreview}" Aspect="AspectFill"
+                        <Grid ColumnDefinitions="120,*" ColumnSpacing="16">
+                            <Border Grid.Column="0" WidthRequest="120" HeightRequest="120" Stroke="{StaticResource BorderColor}"
+                                    BackgroundColor="{StaticResource MidnightBlue}" StrokeShape="RoundRectangle 8">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding OpenFaceModalCommand}" />
+                                </Border.GestureRecognizers>
+                                <Grid>
+                                    <Image Source="{Binding FacePreview}" Aspect="AspectFill"
+                                           IsVisible="{Binding HasFaceTemplate}" />
+                                    <Label Text="Brak zdjęcia" FontSize="11" TextColor="{StaticResource MutedText}"
+                                           HorizontalOptions="Center" VerticalOptions="Center"
+                                           IsVisible="{Binding HasFaceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
+                                </Grid>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                <Label Text="Biometria zarejestrowana" TextColor="{StaticResource AccentGreen}" FontSize="13"
                                        IsVisible="{Binding HasFaceTemplate}" />
-                                <Label Text="Brak zdjęcia" FontSize="11" TextColor="{StaticResource MutedText}"
-                                       HorizontalOptions="Center" VerticalOptions="Center"
+                                <Label Text="Brak biometrii" TextColor="{StaticResource MutedText}" FontSize="13"
                                        IsVisible="{Binding HasFaceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
-                            </Grid>
-                        </Border>
+                                <Label Text="{Binding FaceQualityScore, StringFormat='Jakość: {0:F0}%'}"
+                                       TextColor="{StaticResource AccentGreen}" FontSize="13"
+                                       IsVisible="{Binding HasFaceTemplate}" />
+                                <Label Text="{Binding FaceCapturedText, StringFormat='Aktualizacja: {0}'}"
+                                       TextColor="{StaticResource MutedText}" FontSize="12"
+                                       IsVisible="{Binding HasFaceTemplate}" />
+                                <Button Text="Zaktualizuj twarz" Command="{Binding UpdateFaceCommand}"
+                                        Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
 
-                        <VerticalStackLayout Spacing="6" VerticalOptions="Center">
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="12">
+                        <Label Text="Biometria głosu" Style="{StaticResource FieldLabel}" />
+
+                        <VerticalStackLayout Spacing="6">
+                            <Label Text="Powiedz przy nagraniu:" TextColor="{StaticResource MutedText}" FontSize="12" />
+                            <Label Text="MeBio weryfikacja głosu" TextColor="{StaticResource AccentGreen}" FontSize="15" FontAttributes="Bold" />
                             <Label Text="Biometria zarejestrowana" TextColor="{StaticResource AccentGreen}" FontSize="13"
-                                   IsVisible="{Binding HasFaceTemplate}" />
-                            <Label Text="Brak biometrii" TextColor="{StaticResource MutedText}" FontSize="13"
-                                   IsVisible="{Binding HasFaceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
-                            <Label Text="{Binding FaceQualityScore, StringFormat='Jakość: {0:F0}%'}"
+                                   IsVisible="{Binding HasVoiceTemplate}" />
+                            <Label Text="Brak biometrii głosu" TextColor="{StaticResource MutedText}" FontSize="13"
+                                   IsVisible="{Binding HasVoiceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
+                            <Label Text="{Binding VoiceQualityScore, StringFormat='Jakość: {0:F0}%'}"
                                    TextColor="{StaticResource AccentGreen}" FontSize="13"
-                                   IsVisible="{Binding HasFaceTemplate}" />
-                            <Label Text="{Binding FaceCapturedText, StringFormat='Aktualizacja: {0}'}"
+                                   IsVisible="{Binding HasVoiceTemplate}" />
+                            <Label Text="{Binding VoiceCapturedText, StringFormat='Aktualizacja: {0}'}"
                                    TextColor="{StaticResource MutedText}" FontSize="12"
-                                   IsVisible="{Binding HasFaceTemplate}" />
-                            <Button Text="Zaktualizuj twarz" Command="{Binding UpdateFaceCommand}"
+                                   IsVisible="{Binding HasVoiceTemplate}" />
+                            <Label Text="{Binding VoiceFilePath, StringFormat='Plik: {0}'}"
+                                   TextColor="{StaticResource MutedText}" FontSize="11"
+                                   IsVisible="{Binding HasVoiceTemplate}" />
+                            <Button Text="Zaktualizuj głos" Command="{Binding UpdateVoiceCommand}"
                                     Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
                         </VerticalStackLayout>
-                    </Grid>
-                </VerticalStackLayout>
-            </Border>
-
-            <Border Style="{StaticResource CardBorder}">
-                <VerticalStackLayout Padding="16" Spacing="12">
-                    <Label Text="Biometria głosu" Style="{StaticResource FieldLabel}" />
-
-                    <VerticalStackLayout Spacing="6">
-                        <Label Text="Powiedz przy nagraniu:" TextColor="{StaticResource MutedText}" FontSize="12" />
-                        <Label Text="MeBio weryfikacja głosu" TextColor="{StaticResource AccentGreen}" FontSize="15" FontAttributes="Bold" />
-                        <Label Text="Biometria zarejestrowana" TextColor="{StaticResource AccentGreen}" FontSize="13"
-                               IsVisible="{Binding HasVoiceTemplate}" />
-                        <Label Text="Brak biometrii głosu" TextColor="{StaticResource MutedText}" FontSize="13"
-                               IsVisible="{Binding HasVoiceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
-                        <Label Text="{Binding VoiceQualityScore, StringFormat='Jakość: {0:F0}%'}"
-                               TextColor="{StaticResource AccentGreen}" FontSize="13"
-                               IsVisible="{Binding HasVoiceTemplate}" />
-                        <Label Text="{Binding VoiceCapturedText, StringFormat='Aktualizacja: {0}'}"
-                               TextColor="{StaticResource MutedText}" FontSize="12"
-                               IsVisible="{Binding HasVoiceTemplate}" />
-                        <Label Text="{Binding VoiceFilePath, StringFormat='Plik: {0}'}"
-                               TextColor="{StaticResource MutedText}" FontSize="11"
-                               IsVisible="{Binding HasVoiceTemplate}" />
-                        <Button Text="Zaktualizuj głos" Command="{Binding UpdateVoiceCommand}"
-                                Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
                     </VerticalStackLayout>
-                </VerticalStackLayout>
-            </Border>
+                </Border>
 
-            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
-                               Color="{StaticResource AccentGreen}" />
-        </VerticalStackLayout>
-    </ScrollView>
+                <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                                   Color="{StaticResource AccentGreen}" HorizontalOptions="Center" VerticalOptions="Center" />
+            </VerticalStackLayout>
+        </ScrollView>
+
+        <!-- Modal powiększenia zdjęcia twarzy -->
+        <views:FacePreviewModal IsVisible="{Binding IsFaceModalOpen}" BindingContext="{Binding .}" />
+    </Grid>
 </ContentPage>

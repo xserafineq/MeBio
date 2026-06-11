@@ -55,6 +55,14 @@ public partial class FaceCaptureViewModel : ObservableObject
             cameraHost.Children.Add(camera);
             Camera = camera;
 
+            // Czekamy chwilę, aż handler kontrolki zostanie utworzony przez MAUI
+            int retries = 0;
+            while (camera.Handler == null && retries < 20)
+            {
+                await Task.Delay(50);
+                retries++;
+            }
+
             var cameras = await camera.GetAvailableCameras(CancellationToken.None);
             if (cameras is null || !cameras.Any())
             {

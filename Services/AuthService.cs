@@ -84,15 +84,17 @@ public class AuthService : IAuthService
             }
         }
 
+        var attemptedUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
         if (bestUser is null || bestScore < FaceRecognitionDefaults.MatchThreshold)
         {
-            await LogAttemptAsync(null, email, false, LoginMethod.Face, bestScore);
+            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Face, bestScore);
             return (false, "Nie rozpoznano twarzy.", null);
         }
 
         if (!string.Equals(bestUser.Email, email, StringComparison.OrdinalIgnoreCase))
         {
-            await LogAttemptAsync(bestUser.Id, email, false, LoginMethod.Face, bestScore);
+            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Face, bestScore);
             return (false, "Twarz nie pasuje do podanego konta.", null);
         }
 
@@ -125,15 +127,17 @@ public class AuthService : IAuthService
             }
         }
 
+        var attemptedUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
+
         if (bestUser is null || bestScore < VoiceRecognitionDefaults.MatchThreshold)
         {
-            await LogAttemptAsync(null, email, false, LoginMethod.Voice, bestScore);
+            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Voice, bestScore);
             return (false, "Nie rozpoznano głosu.", null);
         }
 
         if (!string.Equals(bestUser.Email, email, StringComparison.OrdinalIgnoreCase))
         {
-            await LogAttemptAsync(bestUser.Id, email, false, LoginMethod.Voice, bestScore);
+            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Voice, bestScore);
             return (false, "Głos nie pasuje do podanego konta.", null);
         }
 

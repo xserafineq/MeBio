@@ -120,11 +120,15 @@ public class SimpleVoiceRecognitionService : IVoiceRecognitionService
 
         {
 
-            dot += liveTemplate[i] * storedTemplate[i];
+            var a = liveTemplate[i] - 128.0;
 
-            normA += liveTemplate[i] * liveTemplate[i];
+            var b = storedTemplate[i] - 128.0;
 
-            normB += storedTemplate[i] * storedTemplate[i];
+            dot += a * b;
+
+            normA += a * a;
+
+            normB += b * b;
 
         }
 

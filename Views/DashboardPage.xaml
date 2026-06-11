@@ -143,7 +143,7 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Padding="16" Spacing="8">
-                        <Label Text="Moje logowania — ostatnie 7 dni" Style="{StaticResource FieldLabel}" />
+                        <Label Text="Moje logowania - ostatnie 7 dni" Style="{StaticResource FieldLabel}" />
                         <controls:LoginChartView Stats="{Binding ChartStats}" HeightRequest="160" />
                     </VerticalStackLayout>
                 </Border>

@@ -38,9 +38,11 @@ public class SimpleFaceRecognitionService : IFaceRecognitionService
         double dot = 0, normA = 0, normB = 0;
         for (var i = 0; i < liveTemplate.Length; i++)
         {
-            dot += liveTemplate[i] * storedTemplate[i];
-            normA += liveTemplate[i] * liveTemplate[i];
-            normB += storedTemplate[i] * storedTemplate[i];
+            var a = liveTemplate[i] - 128.0;
+            var b = storedTemplate[i] - 128.0;
+            dot += a * b;
+            normA += a * a;
+            normB += b * b;
         }
 
         var score = normA > 0 && normB > 0 ? dot / (Math.Sqrt(normA) * Math.Sqrt(normB)) : 0;
@@ -99,5 +101,81 @@ public class SimpleFaceRecognitionService : IFaceRecognitionService
 
         for (var i = 0; i < data.Length; i++)
             data[i] = (byte)Math.Clamp((data[i] - mean) / std * 32 + 128, 0, 255);
+    }
+
+    public byte[] DrawMinutiae(byte[] imageBytes)
+    {
+        using var bitmap = SKBitmap.Decode(imageBytes);
+        if (bitmap is null) return imageBytes;
+
+        using var canvas = new SKCanvas(bitmap);
+        using var paint = new SKPaint
+        {
+            Color = SKColors.LimeGreen,
+            Style = SKPaintStyle.Stroke,
+            StrokeWidth = 2f,
+            IsAntialias = true
+        };
+        using var fillPaint = new SKPaint
+        {
+            Color = SKColors.LimeGreen.WithAlpha(100),
+            Style = SKPaintStyle.Fill,
+            IsAntialias = true
+        };
+
+        var width = bitmap.Width;
+        var height = bitmap.Height;
+        var points = new List<(int X, int Y, double Score)>();
+
+        var step = Math.Max(4, Math.Min(width, height) / 24);
+
+        for (var y = step * 2; y < height - step * 2; y += step)
+        {
+            for (var x = step * 2; x < width - step * 2; x += step)
+            {
+                var c = bitmap.GetPixel(x, y);
+                var left = bitmap.GetPixel(x - step, y);
+                var right = bitmap.GetPixel(x + step, y);
+                var up = bitmap.GetPixel(x, y - step);
+                var down = bitmap.GetPixel(x, y + step);
+
+                var val = (c.Red + c.Green + c.Blue) / 3.0;
+                var valL = (left.Red + left.Green + left.Blue) / 3.0;
+                var valR = (right.Red + right.Green + right.Blue) / 3.0;
+                var valU = (up.Red + up.Green + up.Blue) / 3.0;
+                var valD = (down.Red + down.Green + down.Blue) / 3.0;
+
+                var dx = valR - valL;
+                var dy = valD - valU;
+                var grad = Math.Sqrt(dx * dx + dy * dy);
+
+                var centerX = width / 2.0;
+                var centerY = height / 2.0;
+                var distFromCenter = Math.Sqrt(Math.Pow(x - centerX, 2) + Math.Pow(y - centerY, 2));
+                var maxDist = Math.Sqrt(centerX * centerX + centerY * centerY);
+                var centerWeight = 1.0 - (distFromCenter / maxDist);
+
+                var score = grad * centerWeight;
+                if (score > 15)
+                {
+                    points.Add((x, y, score));
+                }
+            }
+        }
+
+        var minutiae = points.OrderByDescending(p => p.Score).Take(35).ToList();
+
+        foreach (var p in minutiae)
+        {
+            canvas.DrawCircle(p.X, p.Y, 5f, fillPaint);
+            canvas.DrawCircle(p.X, p.Y, 5f, paint);
+
+            canvas.DrawLine(p.X - 8, p.Y, p.X + 8, p.Y, paint);
+            canvas.DrawLine(p.X, p.Y - 8, p.X, p.Y + 8, paint);
+        }
+
+        using var image = SKImage.FromBitmap(bitmap);
+        using var encoded = image.Encode(SKEncodedImageFormat.Png, 100);
+        return encoded.ToArray();
     }
 }

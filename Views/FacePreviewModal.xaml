@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             x:Class="MeBio.Views.FacePreviewModal">
+    <Grid BackgroundColor="#CC000000"
+          HorizontalOptions="Fill"
+          VerticalOptions="Fill">
+        
+        <!-- Kliknięcie w tło zamyka modal -->
+        <BoxView BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill">
+            <BoxView.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding CloseFaceModalCommand}" />
+            </BoxView.GestureRecognizers>
+        </BoxView>
+
+        <!-- Ramka modala skalująca się automatycznie -->
+        <Border Margin="40"
+                Stroke="{StaticResource BorderColor}"
+                StrokeThickness="2"
+                BackgroundColor="{StaticResource MidnightBlue}"
+                StrokeShape="RoundRectangle 12"
+                HorizontalOptions="Center"
+                VerticalOptions="Center"
+                MaximumWidthRequest="500"
+                MaximumHeightRequest="600">
+            
+            <Grid RowDefinitions="*,Auto" Padding="16" RowSpacing="12">
+                <!-- Zdjęcie twarzy skalujące się automatycznie -->
+                <Image Grid.Row="0" Source="{Binding FaceModalImage}" Aspect="AspectFit"
+                       HorizontalOptions="Center" VerticalOptions="Center" />
+
+                <!-- Przełącznik w ramce pod zdjęciem -->
+                <Grid Grid.Row="1" ColumnDefinitions="Auto,*" ColumnSpacing="16" HorizontalOptions="Fill">
+                    <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
+                        <Switch IsToggled="{Binding ShowMinutiae}" OnColor="{StaticResource AccentGreen}" />
+                        <Label Text="Pokaż minucje" TextColor="{StaticResource TextPrimary}" 
+                               VerticalOptions="Center" FontSize="13" />
+                    </HorizontalStackLayout>
+
+                    <Label Grid.Column="1" Text="Kliknij obok, aby zamknąć" 
+                           TextColor="{StaticResource MutedText}" FontSize="11" 
+                           HorizontalOptions="End" VerticalOptions="Center" />
+                </Grid>
+            </Grid>
+        </Border>
+    </Grid>
+</ContentView>
