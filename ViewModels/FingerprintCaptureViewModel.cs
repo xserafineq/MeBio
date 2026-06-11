@@ -1,47 +1,36 @@
-using CommunityToolkit.Maui.Views;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using CommunityToolkit.Maui.Views;
 using MeBio.Helpers;
 using MeBio.Services;
+using Microsoft.Maui.Controls;
 
 namespace MeBio.ViewModels;
 
-public partial class FaceCaptureViewModel : ObservableObject
+public partial class FingerprintCaptureViewModel : ObservableObject
 {
-    private readonly IFaceRecognitionService _faceService;
+    private readonly IFingerprintRecognitionService _fingerprintService;
     private readonly IAuthService _authService;
     private readonly INavigationService _navigation;
 
-    [ObservableProperty]
-    private string _statusMessage = "Uruchamianie kamery…";
+    [ObservableProperty] private string _statusMessage = "Uruchamianie kamery…";
+    [ObservableProperty] private bool _isBusy;
+    [ObservableProperty] private bool _hasCamera;
+    [ObservableProperty] private bool _isCameraReady;
+    [ObservableProperty] private bool _showAuthResult;
+    [ObservableProperty] private string _authResultMessage = string.Empty;
+    [ObservableProperty] private double _qualityScore;
 
-    [ObservableProperty]
-    private double _qualityScore;
-
-    [ObservableProperty]
-    private bool _isBusy;
-
-    [ObservableProperty]
-    private bool _hasCamera;
-
-    [ObservableProperty]
-    private bool _isCameraReady;
-
-    [ObservableProperty]
-    private bool _showAuthResult;
-
-    [ObservableProperty]
-    private string _authResultMessage = string.Empty;
-
-    public bool IsLoginMode => FaceCaptureHelper.Mode == FaceCaptureMode.Login;
     public CameraView? Camera { get; private set; }
 
-    public FaceCaptureViewModel(
-        IFaceRecognitionService faceService,
+    private bool IsLoginMode => FingerprintCaptureHelper.Mode == FingerprintCaptureMode.Login;
+
+    public FingerprintCaptureViewModel(
+        IFingerprintRecognitionService fingerprintService,
         IAuthService authService,
         INavigationService navigation)
     {
-        _faceService = faceService;
+        _fingerprintService = fingerprintService;
         _authService = authService;
         _navigation = navigation;
     }
@@ -52,7 +41,7 @@ public partial class FaceCaptureViewModel : ObservableObject
         IsCameraReady = false;
         IsBusy = true;
         StatusMessage = IsLoginMode
-            ? "Ustaw twarz w kadrze i zrób zdjęcie do logowania."
+            ? "Ustaw palec z odciskiem w środku kadru i zrób zdjęcie."
             : "Uruchamianie kamery…";
 
         try
@@ -69,7 +58,7 @@ public partial class FaceCaptureViewModel : ObservableObject
             cameraHost.Children.Add(camera);
             Camera = camera;
 
-            int retries = 0;
+            var retries = 0;
             while (camera.Handler == null && retries < 20)
             {
                 await Task.Delay(50);
@@ -88,9 +77,7 @@ public partial class FaceCaptureViewModel : ObservableObject
             await camera.StartCameraPreview(CancellationToken.None);
             HasCamera = true;
             IsCameraReady = true;
-            StatusMessage = IsLoginMode
-                ? "Ustaw twarz w kadrze i zrób zdjęcie."
-                : "Ustaw twarz w kadrze i zrób zdjęcie.";
+            StatusMessage = "Ustaw palec z odciskiem w środku kadru i zrób zdjęcie.";
         }
         catch (Exception ex)
         {
@@ -150,41 +137,41 @@ public partial class FaceCaptureViewModel : ObservableObject
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
 
-                QualityScore = _faceService.ComputeQualityScore(bytes);
+                QualityScore = _fingerprintService.ComputeQualityScore(bytes);
 
-                if (QualityScore < FaceRecognitionDefaults.MinQualityScore)
+                if (QualityScore < FingerprintRecognitionDefaults.MinQualityScore)
                 {
                     StatusMessage = QualityScore < 1
-                        ? "Nie wykryto twarzy — przybliż twarz do kamery i ustaw ją w środku."
+                        ? "Nie wykryto odcisku palca — ustaw palec w środku kadru."
                         : $"Zbyt ciemne lub rozmyte ({QualityScore:F0}%) — popraw oświetlenie.";
                     ShowAuthResult = true;
                     AuthResultMessage = QualityScore < 1
-                        ? "Na zdjęciu nie widać twarzy. Przybliż twarz do kamery."
-                        : $"Jakość: {QualityScore:F0}% (min. {FaceRecognitionDefaults.MinQualityScore:F0}%). Ustaw twarz w środku i doświetl kadr.";
+                        ? "Na zdjęciu nie widać odcisku. Ustaw palec na jasnym tle i przybliż do kamery."
+                        : $"Jakość: {QualityScore:F0}% (min. {FingerprintRecognitionDefaults.MinQualityScore:F0}%). Ustaw palec w środku i doświetl kadr.";
                     return;
                 }
 
                 if (IsLoginMode)
                 {
-                    var email = FaceCaptureHelper.LoginEmail;
+                    var email = FingerprintCaptureHelper.LoginEmail;
                     if (string.IsNullOrWhiteSpace(email))
                     {
                         StatusMessage = "Brak adresu email do logowania.";
                         return;
                     }
 
-                    StatusMessage = "Weryfikacja twarzy…";
-                    var auth = await _authService.LoginWithFaceAsync(bytes, email);
+                    StatusMessage = "Weryfikacja odcisku…";
+                    var auth = await _authService.LoginWithFingerprintAsync(bytes, email);
 
                     if (auth.Success)
                     {
                         StatusMessage = auth.Message;
                         await _navigation.GoToMainAsync();
-                        FaceCaptureHelper.Cancel();
+                        FingerprintCaptureHelper.Cancel();
                         return;
                     }
 
-                    StatusMessage = "Spróbuj ponownie — ustaw twarz w kadrze.";
+                    StatusMessage = "Spróbuj ponownie — ustaw palec w kadrze.";
                     ShowAuthResult = true;
                     AuthResultMessage = BiometricAuthFeedback.FormatFailure(auth);
                     return;
@@ -192,8 +179,8 @@ public partial class FaceCaptureViewModel : ObservableObject
 
                 try
                 {
-                    var template = _faceService.ExtractTemplate(bytes);
-                    FaceCaptureHelper.Complete(new FaceCaptureResult(bytes, template, QualityScore));
+                    var template = _fingerprintService.ExtractTemplate(bytes);
+                    FingerprintCaptureHelper.Complete(new FingerprintCaptureResult(bytes, template, QualityScore));
                     await _navigation.GoBackAsync();
                 }
                 catch (InvalidOperationException ex)
@@ -217,7 +204,7 @@ public partial class FaceCaptureViewModel : ObservableObject
     [RelayCommand]
     private async Task CancelAsync()
     {
-        FaceCaptureHelper.Cancel();
+        FingerprintCaptureHelper.Cancel();
         await _navigation.GoBackAsync();
     }
 }

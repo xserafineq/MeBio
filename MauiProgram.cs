@@ -24,8 +24,9 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<AppDbContext>();
         builder.Services.AddSingleton<PasswordHasher>();
-        builder.Services.AddSingleton<IFaceRecognitionService, SimpleFaceRecognitionService>();
-        builder.Services.AddSingleton<IVoiceRecognitionService, SimpleVoiceRecognitionService>();
+        builder.Services.AddSingleton<IFaceRecognitionService, LbpFaceRecognitionService>();
+        builder.Services.AddSingleton<IVoiceRecognitionService, MfccVoiceRecognitionService>();
+        builder.Services.AddSingleton<IFingerprintRecognitionService, RidgeLbpFingerprintRecognitionService>();
         builder.Services.AddSingleton<IAudioRecordingService, AudioRecordingService>();
         builder.Services.AddSingleton<ICameraAvailabilityService, CameraAvailabilityService>();
         builder.Services.AddSingleton<IMicrophoneAvailabilityService, MicrophoneAvailabilityService>();
@@ -41,6 +42,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RegisterViewModel>();
         builder.Services.AddTransient<FaceCaptureViewModel>();
         builder.Services.AddTransient<VoiceCaptureViewModel>();
+        builder.Services.AddTransient<FingerprintCaptureViewModel>();
         builder.Services.AddTransient<DashboardViewModel>();
         builder.Services.AddTransient<ProfileViewModel>();
         builder.Services.AddTransient<UsersViewModel>();
@@ -50,6 +52,7 @@ public static class MauiProgram
         builder.Services.AddTransient<RegisterPage>();
         builder.Services.AddTransient<FaceCapturePage>();
         builder.Services.AddTransient<VoiceCapturePage>();
+        builder.Services.AddTransient<FingerprintCapturePage>();
         builder.Services.AddTransient<DashboardPage>();
         builder.Services.AddTransient<ProfilePage>();
         builder.Services.AddTransient<UsersPage>();

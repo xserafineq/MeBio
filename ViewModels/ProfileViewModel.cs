@@ -76,6 +76,18 @@ public partial class ProfileViewModel : ObservableObject
     private string _voiceFilePath = string.Empty;
 
     [ObservableProperty]
+    private bool _hasFingerprintTemplate;
+
+    [ObservableProperty]
+    private double? _fingerprintQualityScore;
+
+    [ObservableProperty]
+    private string _fingerprintCapturedText = string.Empty;
+
+    [ObservableProperty]
+    private ImageSource? _fingerprintPreview;
+
+    [ObservableProperty]
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
@@ -137,6 +149,13 @@ public partial class ProfileViewModel : ObservableObject
             VoiceQualityScore = overview.VoiceQualityScore;
             VoiceCapturedText = overview.VoiceCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
             VoiceFilePath = overview.VoiceAudioPath ?? string.Empty;
+
+            HasFingerprintTemplate = overview.HasFingerprintTemplate;
+            FingerprintQualityScore = overview.FingerprintQualityScore;
+            FingerprintCapturedText = overview.FingerprintCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
+            FingerprintPreview = overview.FingerprintPreviewImage is { Length: > 0 } fpBytes
+                ? ImageSource.FromStream(() => new MemoryStream(fpBytes))
+                : null;
         }
         finally
         {
@@ -178,6 +197,7 @@ public partial class ProfileViewModel : ObservableObject
         var userId = _session.CurrentUser?.Id;
         if (userId is null) return;
 
+        FaceCaptureHelper.BeginEnrollment();
         if (!await _navigation.TryGoToFaceCaptureAsync())
         {
             StatusMessage = "Brak kamery.";
@@ -200,6 +220,7 @@ public partial class ProfileViewModel : ObservableObject
         var userId = _session.CurrentUser?.Id;
         if (userId is null) return;
 
+        VoiceCaptureHelper.BeginEnrollment();
         if (!await _navigation.TryGoToVoiceCaptureAsync())
         {
             StatusMessage = "Brak mikrofonu.";
@@ -209,7 +230,30 @@ public partial class ProfileViewModel : ObservableObject
         var capture = await VoiceCaptureHelper.CaptureAsync();
         if (capture is null) return;
 
-        var (success, message) = await _userService.SetVoiceTemplateAsync(userId.Value, capture.WavBytes);
+        var (success, message) = await _userService.SetVoiceTemplateAsync(userId.Value, capture.WavSamples);
+        StatusMessage = message;
+
+        if (success)
+            await LoadAsync();
+    }
+
+    [RelayCommand]
+    private async Task UpdateFingerprintAsync()
+    {
+        var userId = _session.CurrentUser?.Id;
+        if (userId is null) return;
+
+        FingerprintCaptureHelper.BeginEnrollment();
+        if (!await _navigation.TryGoToFingerprintCaptureAsync())
+        {
+            StatusMessage = "Brak kamery.";
+            return;
+        }
+
+        var capture = await FingerprintCaptureHelper.CaptureAsync();
+        if (capture is null) return;
+
+        var (success, message) = await _userService.SetFingerprintTemplateAsync(userId.Value, capture.ImageBytes);
         StatusMessage = message;
 
         if (success)

@@ -39,6 +39,9 @@ public partial class RegisterViewModel : ObservableObject
     private bool _useVoice;
 
     [ObservableProperty]
+    private bool _useFingerprint;
+
+    [ObservableProperty]
     private string _statusMessage = string.Empty;
 
     [ObservableProperty]
@@ -75,10 +78,12 @@ public partial class RegisterViewModel : ObservableObject
         try
         {
             byte[]? faceImage = null;
-            byte[]? voiceAudio = null;
+            IReadOnlyList<byte[]>? voiceSamples = null;
+            byte[]? fingerprintImage = null;
 
             if (UseFace)
             {
+                FaceCaptureHelper.BeginEnrollment();
                 if (!await _navigation.TryGoToFaceCaptureAsync())
                 {
                     StatusMessage = "Rejestracja twarzy anulowana — brak kamery.";
@@ -97,6 +102,7 @@ public partial class RegisterViewModel : ObservableObject
 
             if (UseVoice)
             {
+                VoiceCaptureHelper.BeginEnrollment();
                 if (!await _navigation.TryGoToVoiceCaptureAsync())
                 {
                     StatusMessage = "Rejestracja głosu anulowana — brak mikrofonu.";
@@ -110,11 +116,30 @@ public partial class RegisterViewModel : ObservableObject
                     return;
                 }
 
-                voiceAudio = voiceCapture.WavBytes;
+                voiceSamples = voiceCapture.WavSamples;
+            }
+
+            if (UseFingerprint)
+            {
+                FingerprintCaptureHelper.BeginEnrollment();
+                if (!await _navigation.TryGoToFingerprintCaptureAsync())
+                {
+                    StatusMessage = "Rejestracja odcisku anulowana — brak kamery.";
+                    return;
+                }
+
+                var fingerprintCapture = await FingerprintCaptureHelper.CaptureAsync();
+                if (fingerprintCapture is null)
+                {
+                    StatusMessage = "Rejestracja odcisku anulowana.";
+                    return;
+                }
+
+                fingerprintImage = fingerprintCapture.ImageBytes;
             }
 
             var (success, message) = await _authService.RegisterAsync(
-                FirstName, LastName, Email, Password, age, Gender, faceImage, voiceAudio);
+                FirstName, LastName, Email, Password, age, Gender, faceImage, voiceSamples, fingerprintImage);
             StatusMessage = message;
 
             if (success)

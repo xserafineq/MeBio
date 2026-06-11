@@ -16,7 +16,7 @@
 
 
 
-    <Grid RowDefinitions="*,Auto,Auto" Padding="16" RowSpacing="16">
+    <Grid RowDefinitions="*,Auto,Auto,Auto" Padding="16" RowSpacing="16">
 
         <Border Grid.Row="0" Style="{StaticResource CardBorder}">
 
@@ -40,6 +40,14 @@
 
                        HorizontalTextAlignment="Center" />
 
+                <Label Text="{Binding SampleProgressText}"
+
+                       TextColor="{StaticResource AccentGreen}" FontSize="16" FontAttributes="Bold"
+
+                       HorizontalTextAlignment="Center"
+
+                       IsVisible="{Binding SampleProgressText, Converter={StaticResource StringNotEmptyConverter}}" />
+
                 <Label Text="{Binding CountdownText}"
 
                        FontSize="48" FontAttributes="Bold"
@@ -60,9 +68,22 @@
 
                TextColor="{StaticResource AccentGreen}" />
 
+        <Border Grid.Row="2" Style="{StaticResource CardBorder}" Padding="14"
+                IsVisible="{Binding ShowAuthResult}">
+            <VerticalStackLayout Spacing="6">
+                <Label Text="Autoryzacja nieudana"
+                       TextColor="{StaticResource DangerRed}"
+                       FontAttributes="Bold"
+                       FontSize="15"
+                       HorizontalTextAlignment="Center" />
+                <Label Text="{Binding AuthResultMessage}"
+                       TextColor="{StaticResource DangerRed}"
+                       FontSize="13"
+                       HorizontalTextAlignment="Center" />
+            </VerticalStackLayout>
+        </Border>
 
-
-        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
 
             <Button Grid.Column="0" Text="Anuluj" Command="{Binding CancelCommand}"
 
@@ -76,7 +97,7 @@
 
 
 
-        <ActivityIndicator Grid.RowSpan="3" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+        <ActivityIndicator Grid.RowSpan="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
 
                            Color="{StaticResource AccentGreen}" VerticalOptions="Center" />
 

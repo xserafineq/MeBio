@@ -82,36 +82,9 @@ public partial class LoginViewModel : ObservableObject
             return;
         }
 
-        IsBusy = true;
         StatusMessage = string.Empty;
-
-        try
-        {
-            if (!await _navigation.TryGoToFaceCaptureAsync())
-                return;
-
-            var result = await FaceCaptureHelper.CaptureAsync();
-
-            if (result is null)
-            {
-                StatusMessage = "Anulowano.";
-                return;
-            }
-
-            var (success, message, _) = await _authService.LoginWithFaceAsync(result.ImageBytes, Email);
-            StatusMessage = message;
-            if (success)
-                await _navigation.GoToMainAsync();
-        }
-        catch (Exception ex)
-        {
-            FaceCaptureHelper.Cancel();
-            StatusMessage = $"Błąd logowania twarzą: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+        FaceCaptureHelper.BeginLogin(Email);
+        await _navigation.TryGoToFaceCaptureAsync();
     }
 
     [RelayCommand]
@@ -124,36 +97,24 @@ public partial class LoginViewModel : ObservableObject
             return;
         }
 
-        IsBusy = true;
         StatusMessage = string.Empty;
+        VoiceCaptureHelper.BeginLogin(Email);
+        await _navigation.TryGoToVoiceCaptureAsync();
+    }
 
-        try
+    [RelayCommand]
+    private async Task LoginWithFingerprintAsync()
+    {
+        if (IsBusy) return;
+        if (!TryValidateEmail(out var validationMessage))
         {
-            if (!await _navigation.TryGoToVoiceCaptureAsync())
-                return;
-
-            var result = await VoiceCaptureHelper.CaptureAsync();
-
-            if (result is null)
-            {
-                StatusMessage = "Anulowano.";
-                return;
-            }
-
-            var (success, message, _) = await _authService.LoginWithVoiceAsync(result.WavBytes, Email);
-            StatusMessage = message;
-            if (success)
-                await _navigation.GoToMainAsync();
+            StatusMessage = validationMessage;
+            return;
         }
-        catch (Exception ex)
-        {
-            VoiceCaptureHelper.Cancel();
-            StatusMessage = $"Błąd logowania głosem: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+
+        StatusMessage = string.Empty;
+        FingerprintCaptureHelper.BeginLogin(Email);
+        await _navigation.TryGoToFingerprintCaptureAsync();
     }
 
     [RelayCommand]

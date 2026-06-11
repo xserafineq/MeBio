@@ -8,11 +8,12 @@ namespace MeBio.Services;
 public interface IAuthService
 {
     Task<(bool Success, string Message, User? User)> LoginWithPasswordAsync(string email, string password);
-    Task<(bool Success, string Message, User? User)> LoginWithFaceAsync(byte[] imageBytes, string email);
-    Task<(bool Success, string Message, User? User)> LoginWithVoiceAsync(byte[] wavBytes, string email);
+    Task<BiometricLoginResult> LoginWithFaceAsync(byte[] imageBytes, string email);
+    Task<BiometricLoginResult> LoginWithVoiceAsync(byte[] wavBytes, string email);
+    Task<BiometricLoginResult> LoginWithFingerprintAsync(byte[] imageBytes, string email);
     Task<(bool Success, string Message)> RegisterAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender,
-        byte[]? faceImage = null, byte[]? voiceAudio = null);
+        byte[]? faceImage = null, IReadOnlyList<byte[]>? voiceSamples = null, byte[]? fingerprintImage = null);
     Task LogoutAsync();
 }
 
@@ -22,6 +23,7 @@ public class AuthService : IAuthService
     private readonly PasswordHasher _hasher;
     private readonly IFaceRecognitionService _faceService;
     private readonly IVoiceRecognitionService _voiceService;
+    private readonly IFingerprintRecognitionService _fingerprintService;
     private readonly ISessionService _session;
 
     public AuthService(
@@ -29,12 +31,14 @@ public class AuthService : IAuthService
         PasswordHasher hasher,
         IFaceRecognitionService faceService,
         IVoiceRecognitionService voiceService,
+        IFingerprintRecognitionService fingerprintService,
         ISessionService session)
     {
         _db = db;
         _hasher = hasher;
         _faceService = faceService;
         _voiceService = voiceService;
+        _fingerprintService = fingerprintService;
         _session = session;
     }
 
@@ -62,95 +66,238 @@ public class AuthService : IAuthService
         return (true, "Zalogowano.", user);
     }
 
-    public async Task<(bool Success, string Message, User? User)> LoginWithFaceAsync(byte[] imageBytes, string email)
+    public async Task<BiometricLoginResult> LoginWithFaceAsync(byte[] imageBytes, string email)
     {
         email = email.Trim().ToLowerInvariant();
-        var liveTemplate = _faceService.ExtractTemplate(imageBytes);
-        var templates = await _db.FaceTemplates
-            .Include(f => f.User)
-            .Where(f => f.User.IsVerified)
-            .ToListAsync();
+        var user = await _db.Users
+            .Include(u => u.FaceTemplate)
+            .FirstOrDefaultAsync(u => u.Email == email);
 
-        User? bestUser = null;
-        var bestScore = 0.0;
-
-        foreach (var stored in templates)
+        if (user is null)
         {
-            var match = _faceService.Verify(liveTemplate, stored.TemplateData);
-            if (match.Score > bestScore)
-            {
-                bestScore = match.Score;
-                bestUser = stored.User;
-            }
+            await LogAttemptAsync(null, email, false, LoginMethod.Face);
+            return new BiometricLoginResult(false, "Nie znaleziono konta z tym adresem email.", null);
         }
 
-        var attemptedUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-        if (bestUser is null || bestScore < FaceRecognitionDefaults.MatchThreshold)
+        if (user.FaceTemplate is null)
         {
-            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Face, bestScore);
-            return (false, "Nie rozpoznano twarzy.", null);
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Face);
+            return new BiometricLoginResult(false, "To konto nie ma zarejestrowanej twarzy.", null);
         }
 
-        if (!string.Equals(bestUser.Email, email, StringComparison.OrdinalIgnoreCase))
+        if (user.FaceTemplate.Algorithm != "LbpV1")
         {
-            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Face, bestScore);
-            return (false, "Twarz nie pasuje do podanego konta.", null);
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Face);
+            return new BiometricLoginResult(
+                false,
+                "Profil twarzy wymaga ponownej rejestracji w profilu.",
+                null);
         }
 
-        bestUser.LastLoginAt = DateTime.UtcNow;
+        var quality = _faceService.ComputeQualityScore(imageBytes);
+        if (quality < FaceRecognitionDefaults.MinQualityScore)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Face, quality / 100);
+            return new BiometricLoginResult(
+                false,
+                quality < 1
+                    ? "Nie wykryto twarzy — przybliż twarz do kamery i ustaw ją w środku kadru."
+                    : "Zbyt niska jakość zdjęcia — popraw oświetlenie.",
+                null,
+                null,
+                null,
+                quality);
+        }
+
+        byte[] liveTemplate;
+        try
+        {
+            liveTemplate = _faceService.ExtractTemplate(imageBytes);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Face);
+            return new BiometricLoginResult(false, ex.Message, null, null, null, quality);
+        }
+
+        var threshold = Math.Clamp(
+            user.FaceTemplate.MatchThreshold,
+            FaceRecognitionDefaults.MinMatchThreshold,
+            FaceRecognitionDefaults.MaxMatchThreshold);
+        var match = _faceService.Verify(liveTemplate, user.FaceTemplate.TemplateData, threshold);
+
+        if (!match.IsMatch)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Face, match.Score);
+            return new BiometricLoginResult(
+                false,
+                "Nie rozpoznano twarzy.",
+                null,
+                match.Score,
+                threshold,
+                quality);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        await LogAttemptAsync(bestUser.Id, email, true, LoginMethod.Face, bestScore);
-        _session.SetUser(bestUser);
-        return (true, "Zalogowano twarzą.", bestUser);
+        await LogAttemptAsync(user.Id, email, true, LoginMethod.Face, match.Score);
+        _session.SetUser(user);
+        return new BiometricLoginResult(true, "Zalogowano twarzą.", user, match.Score, threshold, quality);
     }
 
-    public async Task<(bool Success, string Message, User? User)> LoginWithVoiceAsync(byte[] wavBytes, string email)
+    public async Task<BiometricLoginResult> LoginWithVoiceAsync(byte[] wavBytes, string email)
     {
         email = email.Trim().ToLowerInvariant();
-        var liveTemplate = _voiceService.ExtractTemplate(wavBytes);
-        var templates = await _db.VoiceTemplates
-            .Include(v => v.User)
-            .Where(v => v.User.IsVerified)
-            .ToListAsync();
+        var user = await _db.Users
+            .Include(u => u.VoiceTemplate)
+            .FirstOrDefaultAsync(u => u.Email == email);
 
-        User? bestUser = null;
-        var bestScore = 0.0;
-
-        foreach (var stored in templates)
+        if (user is null)
         {
-            var match = _voiceService.Verify(liveTemplate, stored.TemplateData);
-            if (match.Score > bestScore)
-            {
-                bestScore = match.Score;
-                bestUser = stored.User;
-            }
+            await LogAttemptAsync(null, email, false, LoginMethod.Voice);
+            return new BiometricLoginResult(false, "Nie znaleziono konta z tym adresem email.", null);
         }
 
-        var attemptedUser = await _db.Users.FirstOrDefaultAsync(u => u.Email == email);
-
-        if (bestUser is null || bestScore < VoiceRecognitionDefaults.MatchThreshold)
+        if (user.VoiceTemplate is null)
         {
-            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Voice, bestScore);
-            return (false, "Nie rozpoznano głosu.", null);
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice);
+            return new BiometricLoginResult(false, "To konto nie ma zarejestrowanego głosu.", null);
         }
 
-        if (!string.Equals(bestUser.Email, email, StringComparison.OrdinalIgnoreCase))
+        var quality = _voiceService.ComputeQualityScore(wavBytes);
+        if (quality < VoiceRecognitionDefaults.MinLoginQualityScore)
         {
-            await LogAttemptAsync(attemptedUser?.Id, email, false, LoginMethod.Voice, bestScore);
-            return (false, "Głos nie pasuje do podanego konta.", null);
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice, quality / 100);
+            return new BiometricLoginResult(
+                false,
+                "Zbyt niska jakość nagrania — mów głośniej, bliżej mikrofonu.",
+                null,
+                null,
+                null,
+                quality);
         }
 
-        bestUser.LastLoginAt = DateTime.UtcNow;
+        var storedEmbeddings = AudioSignalHelper.UnpackEmbeddings(user.VoiceTemplate.TemplateData);
+        if (storedEmbeddings.Count == 0)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice);
+            return new BiometricLoginResult(
+                false,
+                "Profil głosu jest uszkodzony — zarejestruj głos ponownie w profilu.",
+                null,
+                null,
+                null,
+                quality);
+        }
+
+        var liveEmbedding = _voiceService.ExtractEmbedding(wavBytes);
+        var threshold = Math.Clamp(
+            user.VoiceTemplate.MatchThreshold,
+            VoiceRecognitionDefaults.MinMatchThreshold,
+            VoiceRecognitionDefaults.MaxMatchThreshold);
+        var match = _voiceService.Verify(liveEmbedding, storedEmbeddings, threshold);
+
+        if (!match.IsMatch)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice, match.Score);
+            return new BiometricLoginResult(
+                false,
+                "Nie rozpoznano głosu.",
+                null,
+                match.Score,
+                threshold,
+                quality);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
-        await LogAttemptAsync(bestUser.Id, email, true, LoginMethod.Voice, bestScore);
-        _session.SetUser(bestUser);
-        return (true, "Zalogowano głosem.", bestUser);
+        await LogAttemptAsync(user.Id, email, true, LoginMethod.Voice, match.Score);
+        _session.SetUser(user);
+        return new BiometricLoginResult(true, "Zalogowano głosem.", user, match.Score, threshold, quality);
+    }
+
+    public async Task<BiometricLoginResult> LoginWithFingerprintAsync(byte[] imageBytes, string email)
+    {
+        email = email.Trim().ToLowerInvariant();
+        var user = await _db.Users
+            .Include(u => u.FingerprintTemplate)
+            .FirstOrDefaultAsync(u => u.Email == email);
+
+        if (user is null)
+        {
+            await LogAttemptAsync(null, email, false, LoginMethod.Fingerprint);
+            return new BiometricLoginResult(false, "Nie znaleziono konta z tym adresem email.", null);
+        }
+
+        if (user.FingerprintTemplate is null)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint);
+            return new BiometricLoginResult(false, "To konto nie ma zarejestrowanego odcisku palca.", null);
+        }
+
+        if (user.FingerprintTemplate.Algorithm != "RidgeLbpV1")
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint);
+            return new BiometricLoginResult(
+                false,
+                "Profil odcisku wymaga ponownej rejestracji w profilu.",
+                null);
+        }
+
+        var quality = _fingerprintService.ComputeQualityScore(imageBytes);
+        if (quality < FingerprintRecognitionDefaults.MinQualityScore)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint, quality / 100);
+            return new BiometricLoginResult(
+                false,
+                quality < 1
+                    ? "Nie wykryto odcisku palca — ustaw palec w środku kadru."
+                    : "Zbyt niska jakość zdjęcia — popraw oświetlenie.",
+                null,
+                null,
+                null,
+                quality);
+        }
+
+        byte[] liveTemplate;
+        try
+        {
+            liveTemplate = _fingerprintService.ExtractTemplate(imageBytes);
+        }
+        catch (InvalidOperationException ex)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint);
+            return new BiometricLoginResult(false, ex.Message, null, null, null, quality);
+        }
+
+        var threshold = Math.Clamp(
+            user.FingerprintTemplate.MatchThreshold,
+            FingerprintRecognitionDefaults.MinMatchThreshold,
+            FingerprintRecognitionDefaults.MaxMatchThreshold);
+        var match = _fingerprintService.Verify(liveTemplate, user.FingerprintTemplate.TemplateData, threshold);
+
+        if (!match.IsMatch)
+        {
+            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint, match.Score);
+            return new BiometricLoginResult(
+                false,
+                "Nie rozpoznano odcisku palca.",
+                null,
+                match.Score,
+                threshold,
+                quality);
+        }
+
+        user.LastLoginAt = DateTime.UtcNow;
+        await _db.SaveChangesAsync();
+        await LogAttemptAsync(user.Id, email, true, LoginMethod.Fingerprint, match.Score);
+        _session.SetUser(user);
+        return new BiometricLoginResult(true, "Zalogowano odciskiem palca.", user, match.Score, threshold, quality);
     }
 
     public async Task<(bool Success, string Message)> RegisterAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender,
-        byte[]? faceImage = null, byte[]? voiceAudio = null)
+        byte[]? faceImage = null, IReadOnlyList<byte[]>? voiceSamples = null, byte[]? fingerprintImage = null)
     {
         firstName = firstName.Trim();
         lastName = lastName.Trim();
@@ -182,7 +329,7 @@ public class AuthService : IAuthService
             Age = age,
             Gender = gender,
             Role = UserRole.User,
-            IsVerified = faceImage is not null || voiceAudio is not null,
+            IsVerified = faceImage is not null || voiceSamples is { Count: > 0 } || fingerprintImage is not null,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -192,38 +339,82 @@ public class AuthService : IAuthService
         if (faceImage is not null)
         {
             var quality = _faceService.ComputeQualityScore(faceImage);
-            if (quality < 30)
-                return (false, "Jakość zdjęcia twarzy jest zbyt niska. Spróbuj ponownie.");
+            if (quality < FaceRecognitionDefaults.MinQualityScore)
+                return (false, quality < 1
+                    ? "Nie wykryto twarzy na zdjęciu. Ustaw twarz w kadrze."
+                    : "Jakość zdjęcia twarzy jest zbyt niska. Spróbuj ponownie.");
 
-            var template = _faceService.ExtractTemplate(faceImage);
+            byte[] template;
+            try
+            {
+                template = _faceService.ExtractTemplate(faceImage);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message);
+            }
+
             _db.FaceTemplates.Add(new FaceTemplate
             {
                 UserId = user.Id,
                 TemplateData = template,
                 PreviewImage = faceImage,
                 QualityScore = quality,
-                Algorithm = "SimpleV1"
+                MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold,
+                Algorithm = "LbpV1"
             });
             await _db.SaveChangesAsync();
         }
 
-        if (voiceAudio is not null)
+        if (voiceSamples is { Count: > 0 })
         {
-            var quality = _voiceService.ComputeQualityScore(voiceAudio);
-            if (quality < VoiceRecognitionDefaults.MinQualityScore)
-                return (false, "Jakość nagrania głosu jest zbyt niska. Spróbuj ponownie.");
+            if (voiceSamples.Count < VoiceRecognitionDefaults.EnrollmentSamples)
+                return (false, $"Wymagane są {VoiceRecognitionDefaults.EnrollmentSamples} próbki głosu.");
 
-            var template = _voiceService.ExtractTemplate(voiceAudio);
-            var audioPath = await VoiceFileStorage.SaveAsync(user.Id, voiceAudio);
-            _db.VoiceTemplates.Add(new VoiceTemplate
+            VoiceEnrollmentResult enrollment;
+            try
+            {
+                enrollment = _voiceService.BuildEnrollment(voiceSamples);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message);
+            }
+
+            if (enrollment.AverageQuality < VoiceRecognitionDefaults.MinQualityScore)
+                return (false, "Jakość nagrań głosu jest zbyt niska. Spróbuj ponownie.");
+
+            await VoiceTemplatePersistence.SaveAsync(_db, user, enrollment, voiceSamples);
+            await _db.SaveChangesAsync();
+        }
+
+        if (fingerprintImage is not null)
+        {
+            var quality = _fingerprintService.ComputeQualityScore(fingerprintImage);
+            if (quality < FingerprintRecognitionDefaults.MinQualityScore)
+                return (false, quality < 1
+                    ? "Nie wykryto odcisku palca na zdjęciu. Ustaw palec w kadrze."
+                    : "Jakość zdjęcia odcisku jest zbyt niska. Spróbuj ponownie.");
+
+            byte[] template;
+            try
+            {
+                template = _fingerprintService.ExtractTemplate(fingerprintImage);
+            }
+            catch (InvalidOperationException ex)
+            {
+                return (false, ex.Message);
+            }
+
+            _db.FingerprintTemplates.Add(new FingerprintTemplate
             {
                 UserId = user.Id,
                 TemplateData = template,
-                AudioFilePath = audioPath,
+                PreviewImage = fingerprintImage,
                 QualityScore = quality,
-                Algorithm = "SimpleV1"
+                MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold,
+                Algorithm = "RidgeLbpV1"
             });
-            user.IsVerified = true;
             await _db.SaveChangesAsync();
         }
 

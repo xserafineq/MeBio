@@ -16,7 +16,8 @@ public interface IUserService
     Task<(bool Success, string Message)> UpdateProfileAsync(int userId, string email, string? newPassword, string? confirmPassword);
     Task<(bool Success, string Message)> DeleteAsync(int id);
     Task<(bool Success, string Message)> SetFaceTemplateAsync(int userId, byte[] imageBytes);
-    Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, byte[] wavBytes);
+    Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, IReadOnlyList<byte[]> wavSamples);
+    Task<(bool Success, string Message)> SetFingerprintTemplateAsync(int userId, byte[] imageBytes);
 }
 
 public class UserService : IUserService
@@ -25,6 +26,7 @@ public class UserService : IUserService
     private readonly PasswordHasher _hasher;
     private readonly IFaceRecognitionService _faceService;
     private readonly IVoiceRecognitionService _voiceService;
+    private readonly IFingerprintRecognitionService _fingerprintService;
     private readonly ISessionService _session;
 
     public UserService(
@@ -32,21 +34,24 @@ public class UserService : IUserService
         PasswordHasher hasher,
         IFaceRecognitionService faceService,
         IVoiceRecognitionService voiceService,
+        IFingerprintRecognitionService fingerprintService,
         ISessionService session)
     {
         _db = db;
         _hasher = hasher;
         _faceService = faceService;
         _voiceService = voiceService;
+        _fingerprintService = fingerprintService;
         _session = session;
     }
 
     public Task<List<User>> GetAllAsync() =>
-        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate)
+        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate).Include(u => u.FingerprintTemplate)
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ToListAsync();
 
     public Task<User?> GetByIdAsync(int id) =>
-        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate).FirstOrDefaultAsync(u => u.Id == id);
+        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate).Include(u => u.FingerprintTemplate)
+            .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<(bool Success, string Message)> CreateAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender, UserRole role)
@@ -90,7 +95,11 @@ public class UserService : IUserService
     public async Task<(bool Success, string Message)> UpdateAsync(
         int id, string firstName, string lastName, string email, int age, Gender gender, UserRole role, bool isVerified)
     {
-        var user = await _db.Users.Include(u => u.FaceTemplate).FirstOrDefaultAsync(u => u.Id == id);
+        var user = await _db.Users
+            .Include(u => u.FaceTemplate)
+            .Include(u => u.VoiceTemplate)
+            .Include(u => u.FingerprintTemplate)
+            .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
             return (false, "Nie znaleziono użytkownika.");
 
@@ -113,7 +122,8 @@ public class UserService : IUserService
         user.Age = age;
         user.Gender = gender;
         user.Role = role;
-        user.IsVerified = isVerified || user.FaceTemplate is not null || user.VoiceTemplate is not null;
+        user.IsVerified = isVerified || user.FaceTemplate is not null || user.VoiceTemplate is not null
+            || user.FingerprintTemplate is not null;
         await _db.SaveChangesAsync();
 
         if (_session.CurrentUser?.Id == id)
@@ -180,16 +190,28 @@ public class UserService : IUserService
             return (false, "Nie znaleziono użytkownika.");
 
         var quality = _faceService.ComputeQualityScore(imageBytes);
-        if (quality < 30)
-            return (false, "Jakość zdjęcia zbyt niska.");
+        if (quality < FaceRecognitionDefaults.MinQualityScore)
+            return (false, quality < 1
+                ? "Nie wykryto twarzy na zdjęciu."
+                : "Jakość zdjęcia zbyt niska.");
 
-        var template = _faceService.ExtractTemplate(imageBytes);
+        byte[] template;
+        try
+        {
+            template = _faceService.ExtractTemplate(imageBytes);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message);
+        }
 
         if (user.FaceTemplate is not null)
         {
             user.FaceTemplate.TemplateData = template;
             user.FaceTemplate.PreviewImage = imageBytes;
             user.FaceTemplate.QualityScore = quality;
+            user.FaceTemplate.MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold;
+            user.FaceTemplate.Algorithm = "LbpV1";
             user.FaceTemplate.CapturedAt = DateTime.UtcNow;
         }
         else
@@ -200,7 +222,8 @@ public class UserService : IUserService
                 TemplateData = template,
                 PreviewImage = imageBytes,
                 QualityScore = quality,
-                Algorithm = "SimpleV1"
+                MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold,
+                Algorithm = "LbpV1"
             });
         }
 
@@ -210,7 +233,7 @@ public class UserService : IUserService
         return (true, "Biometria zapisana.");
     }
 
-    public async Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, byte[] wavBytes)
+    public async Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, IReadOnlyList<byte[]> wavSamples)
     {
         if (_session.CurrentUser?.Id != userId)
             return (false, "Biometrię może zmienić tylko właściciel konta.");
@@ -219,36 +242,78 @@ public class UserService : IUserService
         if (user is null)
             return (false, "Nie znaleziono użytkownika.");
 
-        var quality = _voiceService.ComputeQualityScore(wavBytes);
-        if (quality < VoiceRecognitionDefaults.MinQualityScore)
-            return (false, "Jakość nagrania zbyt niska.");
+        if (wavSamples.Count < VoiceRecognitionDefaults.EnrollmentSamples)
+            return (false, $"Wymagane są {VoiceRecognitionDefaults.EnrollmentSamples} próbki głosu.");
 
-        var template = _voiceService.ExtractTemplate(wavBytes);
-        var audioPath = await VoiceFileStorage.SaveAsync(userId, wavBytes);
-
-        if (user.VoiceTemplate is not null)
+        VoiceEnrollmentResult enrollment;
+        try
         {
-            user.VoiceTemplate.TemplateData = template;
-            user.VoiceTemplate.AudioFilePath = audioPath;
+            enrollment = _voiceService.BuildEnrollment(wavSamples);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message);
+        }
 
-            user.VoiceTemplate.QualityScore = quality;
-            user.VoiceTemplate.CapturedAt = DateTime.UtcNow;
+        if (enrollment.AverageQuality < VoiceRecognitionDefaults.MinQualityScore)
+            return (false, "Jakość nagrań zbyt niska.");
+
+        await VoiceTemplatePersistence.SaveAsync(_db, user, enrollment, wavSamples);
+        await _db.SaveChangesAsync();
+        _session.SetUser(user);
+        return (true, "Głos zapisany.");
+    }
+
+    public async Task<(bool Success, string Message)> SetFingerprintTemplateAsync(int userId, byte[] imageBytes)
+    {
+        if (_session.CurrentUser?.Id != userId)
+            return (false, "Biometrię może zmienić tylko właściciel konta.");
+
+        var user = await _db.Users.Include(u => u.FingerprintTemplate).FirstOrDefaultAsync(u => u.Id == userId);
+        if (user is null)
+            return (false, "Nie znaleziono użytkownika.");
+
+        var quality = _fingerprintService.ComputeQualityScore(imageBytes);
+        if (quality < FingerprintRecognitionDefaults.MinQualityScore)
+            return (false, quality < 1
+                ? "Nie wykryto odcisku palca na zdjęciu."
+                : "Jakość zdjęcia zbyt niska.");
+
+        byte[] template;
+        try
+        {
+            template = _fingerprintService.ExtractTemplate(imageBytes);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return (false, ex.Message);
+        }
+
+        if (user.FingerprintTemplate is not null)
+        {
+            user.FingerprintTemplate.TemplateData = template;
+            user.FingerprintTemplate.PreviewImage = imageBytes;
+            user.FingerprintTemplate.QualityScore = quality;
+            user.FingerprintTemplate.MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold;
+            user.FingerprintTemplate.Algorithm = "RidgeLbpV1";
+            user.FingerprintTemplate.CapturedAt = DateTime.UtcNow;
         }
         else
         {
-            _db.VoiceTemplates.Add(new VoiceTemplate
+            _db.FingerprintTemplates.Add(new FingerprintTemplate
             {
                 UserId = userId,
                 TemplateData = template,
-                AudioFilePath = audioPath,
+                PreviewImage = imageBytes,
                 QualityScore = quality,
-                Algorithm = "SimpleV1"
+                MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold,
+                Algorithm = "RidgeLbpV1"
             });
         }
 
         user.IsVerified = true;
         await _db.SaveChangesAsync();
         _session.SetUser(user);
-        return (true, "Głos zapisany.");
+        return (true, "Odcisk palca zapisany.");
     }
 }

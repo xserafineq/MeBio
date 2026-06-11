@@ -19,5 +19,6 @@ public class User
 
     public FaceTemplate? FaceTemplate { get; set; }
     public VoiceTemplate? VoiceTemplate { get; set; }
+    public FingerprintTemplate? FingerprintTemplate { get; set; }
     public ICollection<LoginAttempt> LoginAttempts { get; set; } = [];
 }

@@ -104,6 +104,40 @@
 
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Padding="16" Spacing="12">
+                        <Label Text="Biometria odcisku palca" Style="{StaticResource FieldLabel}" />
+
+                        <Grid ColumnDefinitions="120,*" ColumnSpacing="16">
+                            <Border Grid.Column="0" WidthRequest="120" HeightRequest="120" Stroke="{StaticResource BorderColor}"
+                                    BackgroundColor="{StaticResource MidnightBlue}" StrokeShape="RoundRectangle 8">
+                                <Grid>
+                                    <Image Source="{Binding FingerprintPreview}" Aspect="AspectFill"
+                                           IsVisible="{Binding HasFingerprintTemplate}" />
+                                    <Label Text="Brak zdjęcia" FontSize="11" TextColor="{StaticResource MutedText}"
+                                           HorizontalOptions="Center" VerticalOptions="Center"
+                                           IsVisible="{Binding HasFingerprintTemplate, Converter={StaticResource InvertedBoolConverter}}" />
+                                </Grid>
+                            </Border>
+
+                            <VerticalStackLayout Grid.Column="1" Spacing="6" VerticalOptions="Center">
+                                <Label Text="Biometria zarejestrowana" TextColor="{StaticResource AccentGreen}" FontSize="13"
+                                       IsVisible="{Binding HasFingerprintTemplate}" />
+                                <Label Text="Brak biometrii" TextColor="{StaticResource MutedText}" FontSize="13"
+                                       IsVisible="{Binding HasFingerprintTemplate, Converter={StaticResource InvertedBoolConverter}}" />
+                                <Label Text="{Binding FingerprintQualityScore, StringFormat='Jakość: {0:F0}%'}"
+                                       TextColor="{StaticResource AccentGreen}" FontSize="13"
+                                       IsVisible="{Binding HasFingerprintTemplate}" />
+                                <Label Text="{Binding FingerprintCapturedText, StringFormat='Aktualizacja: {0}'}"
+                                       TextColor="{StaticResource MutedText}" FontSize="12"
+                                       IsVisible="{Binding HasFingerprintTemplate}" />
+                                <Button Text="Zaktualizuj odcisk" Command="{Binding UpdateFingerprintCommand}"
+                                        Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="12">
                         <Label Text="Biometria głosu" Style="{StaticResource FieldLabel}" />
 
                         <VerticalStackLayout Spacing="6">

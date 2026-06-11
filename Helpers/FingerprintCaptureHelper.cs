@@ -2,31 +2,31 @@ using MeBio.Services;
 
 namespace MeBio.Helpers;
 
-public static class FaceCaptureHelper
+public static class FingerprintCaptureHelper
 {
-    public static FaceCaptureMode Mode { get; private set; } = FaceCaptureMode.Enrollment;
+    public static FingerprintCaptureMode Mode { get; private set; } = FingerprintCaptureMode.Enrollment;
     public static string? LoginEmail { get; private set; }
-    public static TaskCompletionSource<FaceCaptureResult?>? Pending { get; private set; }
+    public static TaskCompletionSource<FingerprintCaptureResult?>? Pending { get; private set; }
 
     public static void BeginEnrollment()
     {
-        Mode = FaceCaptureMode.Enrollment;
+        Mode = FingerprintCaptureMode.Enrollment;
         LoginEmail = null;
     }
 
     public static void BeginLogin(string email)
     {
-        Mode = FaceCaptureMode.Login;
+        Mode = FingerprintCaptureMode.Login;
         LoginEmail = email.Trim().ToLowerInvariant();
     }
 
-    public static Task<FaceCaptureResult?> CaptureAsync()
+    public static Task<FingerprintCaptureResult?> CaptureAsync()
     {
-        Pending = new TaskCompletionSource<FaceCaptureResult?>();
+        Pending = new TaskCompletionSource<FingerprintCaptureResult?>();
         return Pending.Task;
     }
 
-    public static void Complete(FaceCaptureResult? result)
+    public static void Complete(FingerprintCaptureResult? result)
     {
         Pending?.TrySetResult(result);
         Reset();
@@ -41,7 +41,7 @@ public static class FaceCaptureHelper
     private static void Reset()
     {
         Pending = null;
-        Mode = FaceCaptureMode.Enrollment;
+        Mode = FingerprintCaptureMode.Enrollment;
         LoginEmail = null;
     }
 }

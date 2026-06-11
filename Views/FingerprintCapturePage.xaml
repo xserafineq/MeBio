@@ -2,9 +2,9 @@
 <ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
              xmlns:vm="clr-namespace:MeBio.ViewModels"
-             x:Class="MeBio.Views.FaceCapturePage"
-             x:DataType="vm:FaceCaptureViewModel"
-             Title="Skan twarzy"
+             x:Class="MeBio.Views.FingerprintCapturePage"
+             x:DataType="vm:FingerprintCaptureViewModel"
+             Title="Skan odcisku palca"
              BackgroundColor="{StaticResource AppBackground}">
 
     <Grid RowDefinitions="*,Auto,Auto,Auto" Padding="16" RowSpacing="12">

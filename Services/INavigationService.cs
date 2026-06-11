@@ -8,6 +8,7 @@ public interface INavigationService
     Task GoToRegisterAsync();
     Task<bool> TryGoToFaceCaptureAsync();
     Task<bool> TryGoToVoiceCaptureAsync();
+    Task<bool> TryGoToFingerprintCaptureAsync();
     Task GoBackAsync();
     Task GoToMainAsync();
     Task GoToLoginAsync();
@@ -76,6 +77,28 @@ public class NavigationService : INavigationService
         catch (Exception ex)
         {
             await AlertHelper.ShowAsync("Mikrofon", $"Nie można uruchomić nagrywania: {ex.Message}");
+            return false;
+        }
+    }
+
+    public async Task<bool> TryGoToFingerprintCaptureAsync()
+    {
+        var (available, message) = await _cameraAvailability.CheckAsync();
+        if (!available)
+        {
+            await AlertHelper.ShowAsync("Kamera", message);
+            return false;
+        }
+
+        try
+        {
+            var page = _services.GetRequiredService<FingerprintCapturePage>();
+            await GetNavigation().PushAsync(page);
+            return true;
+        }
+        catch (Exception ex)
+        {
+            await AlertHelper.ShowAsync("Kamera", $"Nie można uruchomić kamery: {ex.Message}");
             return false;
         }
     }
