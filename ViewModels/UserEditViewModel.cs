@@ -27,6 +27,9 @@ public partial class UserEditViewModel : ObservableObject
     private string _password = string.Empty;
 
     [ObservableProperty]
+    private string _confirmPassword = string.Empty;
+
+    [ObservableProperty]
     private string _ageText = string.Empty;
 
     [ObservableProperty]
@@ -63,6 +66,7 @@ public partial class UserEditViewModel : ObservableObject
             LastName = string.Empty;
             Email = string.Empty;
             Password = string.Empty;
+            ConfirmPassword = string.Empty;
             AgeText = string.Empty;
             Gender = Gender.Male;
             Role = UserRole.User;
@@ -80,6 +84,8 @@ public partial class UserEditViewModel : ObservableObject
         Gender = user.Gender;
         Role = user.Role;
         IsVerified = user.IsVerified;
+        Password = string.Empty;
+        ConfirmPassword = string.Empty;
     }
 
     [RelayCommand]
@@ -105,14 +111,29 @@ public partial class UserEditViewModel : ObservableObject
                     return;
                 }
 
+                if (Password != ConfirmPassword)
+                {
+                    StatusMessage = "Hasła nie są identyczne.";
+                    return;
+                }
+
                 var (success, message) = await _userService.CreateAsync(
                     FirstName, LastName, Email, Password, age, Gender, Role);
                 StatusMessage = message;
             }
             else
             {
+                if (!string.IsNullOrWhiteSpace(Password) || !string.IsNullOrWhiteSpace(ConfirmPassword))
+                {
+                    if (Password != ConfirmPassword)
+                    {
+                        StatusMessage = "Hasła nie są identyczne.";
+                        return;
+                    }
+                }
+
                 var (success, message) = await _userService.UpdateAsync(
-                    UserId, FirstName, LastName, Email, age, Gender, Role, IsVerified);
+                    UserId, FirstName, LastName, Email, age, Gender, Role, IsVerified, Password, ConfirmPassword);
                 StatusMessage = message;
             }
 

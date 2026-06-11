@@ -12,7 +12,8 @@ public interface IUserService
     Task<(bool Success, string Message)> CreateAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender, UserRole role);
     Task<(bool Success, string Message)> UpdateAsync(
-        int id, string firstName, string lastName, string email, int age, Gender gender, UserRole role, bool isVerified);
+        int id, string firstName, string lastName, string email, int age, Gender gender, UserRole role, bool isVerified,
+        string? newPassword = null, string? confirmPassword = null);
     Task<(bool Success, string Message)> UpdateProfileAsync(int userId, string email, string? newPassword, string? confirmPassword);
     Task<(bool Success, string Message)> DeleteAsync(int id);
     Task<(bool Success, string Message)> SetFaceTemplateAsync(int userId, byte[] imageBytes);
@@ -93,7 +94,8 @@ public class UserService : IUserService
     }
 
     public async Task<(bool Success, string Message)> UpdateAsync(
-        int id, string firstName, string lastName, string email, int age, Gender gender, UserRole role, bool isVerified)
+        int id, string firstName, string lastName, string email, int age, Gender gender, UserRole role, bool isVerified,
+        string? newPassword = null, string? confirmPassword = null)
     {
         var user = await _db.Users
             .Include(u => u.FaceTemplate)
@@ -124,6 +126,20 @@ public class UserService : IUserService
         user.Role = role;
         user.IsVerified = isVerified || user.FaceTemplate is not null || user.VoiceTemplate is not null
             || user.FingerprintTemplate is not null;
+
+        if (!string.IsNullOrWhiteSpace(newPassword))
+        {
+            if (newPassword != confirmPassword)
+                return (false, "Hasła nie są identyczne.");
+
+            var pwdCheck = ValidationHelper.ValidatePassword(newPassword);
+            if (!pwdCheck.Valid) return (false, pwdCheck.Message);
+
+            var (hash, salt) = _hasher.Hash(newPassword);
+            user.PasswordHash = hash;
+            user.PasswordSalt = salt;
+        }
+
         await _db.SaveChangesAsync();
 
         if (_session.CurrentUser?.Id == id)

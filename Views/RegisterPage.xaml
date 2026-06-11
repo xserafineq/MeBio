@@ -32,7 +32,11 @@
                     <Entry Text="{Binding AgeText}" Keyboard="Numeric" Style="{StaticResource DarkEntry}" />
 
                     <Label Text="Płeć" Style="{StaticResource FieldLabel}" />
-                    <Picker ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}" />
+                    <Picker ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}">
+                        <Picker.ItemDisplayBinding>
+                            <Binding Converter="{StaticResource GenderConverter}" />
+                        </Picker.ItemDisplayBinding>
+                    </Picker>
 
                     <HorizontalStackLayout Spacing="10">
                         <CheckBox IsChecked="{Binding UseFace}" Color="{StaticResource AccentGreen}" />

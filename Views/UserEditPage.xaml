@@ -21,14 +21,22 @@
                     <Entry Text="{Binding Email}" Keyboard="Email" Style="{StaticResource DarkEntry}" />
 
                     <Label Text="Hasło" Style="{StaticResource FieldLabel}" IsVisible="{Binding IsNew}" />
-                    <Entry Text="{Binding Password}" IsPassword="True" Style="{StaticResource DarkEntry}"
-                           IsVisible="{Binding IsNew}" />
+                    <Label Text="Nowe hasło" Style="{StaticResource FieldLabel}"
+                           IsVisible="{Binding IsNew, Converter={StaticResource InvertedBoolConverter}}" />
+                    <Entry Text="{Binding Password}" IsPassword="True" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Powtórz hasło" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding ConfirmPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
 
                     <Label Text="Wiek" Style="{StaticResource FieldLabel}" />
                     <Entry Text="{Binding AgeText}" Keyboard="Numeric" Style="{StaticResource DarkEntry}" />
 
                     <Label Text="Płeć" Style="{StaticResource FieldLabel}" />
-                    <Picker x:Name="GenderPicker" ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}" />
+                    <Picker x:Name="GenderPicker" ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}">
+                        <Picker.ItemDisplayBinding>
+                            <Binding Converter="{StaticResource GenderConverter}" />
+                        </Picker.ItemDisplayBinding>
+                    </Picker>
 
                     <Label Text="Rola" Style="{StaticResource FieldLabel}" />
                     <Picker x:Name="RolePicker" SelectedItem="{Binding Role}" />
