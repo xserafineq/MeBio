@@ -18,7 +18,6 @@ public class User
     public string FullName => $"{FirstName} {LastName}".Trim();
 
     public FaceTemplate? FaceTemplate { get; set; }
-    public VoiceTemplate? VoiceTemplate { get; set; }
     public FingerprintTemplate? FingerprintTemplate { get; set; }
     public ICollection<LoginAttempt> LoginAttempts { get; set; } = [];
 }

@@ -88,21 +88,6 @@ public partial class LoginViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private async Task LoginWithVoiceAsync()
-    {
-        if (IsBusy) return;
-        if (!TryValidateEmail(out var validationMessage))
-        {
-            StatusMessage = validationMessage;
-            return;
-        }
-
-        StatusMessage = string.Empty;
-        VoiceCaptureHelper.BeginLogin(Email);
-        await _navigation.TryGoToVoiceCaptureAsync();
-    }
-
-    [RelayCommand]
     private async Task LoginWithFingerprintAsync()
     {
         if (IsBusy) return;

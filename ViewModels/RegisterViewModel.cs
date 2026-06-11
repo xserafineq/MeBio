@@ -36,9 +36,6 @@ public partial class RegisterViewModel : ObservableObject
     private bool _useFace;
 
     [ObservableProperty]
-    private bool _useVoice;
-
-    [ObservableProperty]
     private bool _useFingerprint;
 
     [ObservableProperty]
@@ -78,7 +75,6 @@ public partial class RegisterViewModel : ObservableObject
         try
         {
             byte[]? faceImage = null;
-            IReadOnlyList<byte[]>? voiceSamples = null;
             byte[]? fingerprintImage = null;
 
             if (UseFace)
@@ -98,25 +94,6 @@ public partial class RegisterViewModel : ObservableObject
                 }
 
                 faceImage = capture.ImageBytes;
-            }
-
-            if (UseVoice)
-            {
-                VoiceCaptureHelper.BeginEnrollment();
-                if (!await _navigation.TryGoToVoiceCaptureAsync())
-                {
-                    StatusMessage = "Rejestracja głosu anulowana — brak mikrofonu.";
-                    return;
-                }
-
-                var voiceCapture = await VoiceCaptureHelper.CaptureAsync();
-                if (voiceCapture is null)
-                {
-                    StatusMessage = "Rejestracja głosu anulowana.";
-                    return;
-                }
-
-                voiceSamples = voiceCapture.WavSamples;
             }
 
             if (UseFingerprint)
@@ -139,7 +116,7 @@ public partial class RegisterViewModel : ObservableObject
             }
 
             var (success, message) = await _authService.RegisterAsync(
-                FirstName, LastName, Email, Password, age, Gender, faceImage, voiceSamples, fingerprintImage);
+                FirstName, LastName, Email, Password, age, Gender, faceImage, fingerprintImage);
             StatusMessage = message;
 
             if (success)

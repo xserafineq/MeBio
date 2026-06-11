@@ -7,7 +7,6 @@ public class AppDbContext : DbContext
 {
     public DbSet<User> Users => Set<User>();
     public DbSet<FaceTemplate> FaceTemplates => Set<FaceTemplate>();
-    public DbSet<VoiceTemplate> VoiceTemplates => Set<VoiceTemplate>();
     public DbSet<FingerprintTemplate> FingerprintTemplates => Set<FingerprintTemplate>();
     public DbSet<LoginAttempt> LoginAttempts => Set<LoginAttempt>();
 
@@ -31,10 +30,6 @@ public class AppDbContext : DbContext
             e.HasOne(u => u.FaceTemplate)
                 .WithOne(f => f.User)
                 .HasForeignKey<FaceTemplate>(f => f.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
-            e.HasOne(u => u.VoiceTemplate)
-                .WithOne(v => v.User)
-                .HasForeignKey<VoiceTemplate>(v => v.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
             e.HasOne(u => u.FingerprintTemplate)
                 .WithOne(f => f.User)

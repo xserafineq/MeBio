@@ -65,18 +65,6 @@ public partial class ProfileViewModel : ObservableObject
     public ImageSource? FaceModalImage => ShowLandmarks ? FacePreviewWithLandmarks : FacePreview;
 
     [ObservableProperty]
-    private bool _hasVoiceTemplate;
-
-    [ObservableProperty]
-    private double? _voiceQualityScore;
-
-    [ObservableProperty]
-    private string _voiceCapturedText = string.Empty;
-
-    [ObservableProperty]
-    private string _voiceFilePath = string.Empty;
-
-    [ObservableProperty]
     private bool _hasFingerprintTemplate;
 
     [ObservableProperty]
@@ -166,11 +154,6 @@ public partial class ProfileViewModel : ObservableObject
                 ? ImageSource.FromStream(() => new MemoryStream(_faceService.DrawLandmarks(bytes2)))
                 : null;
 
-            HasVoiceTemplate = overview.HasVoiceTemplate;
-            VoiceQualityScore = overview.VoiceQualityScore;
-            VoiceCapturedText = overview.VoiceCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
-            VoiceFilePath = overview.VoiceAudioPath ?? string.Empty;
-
             HasFingerprintTemplate = overview.HasFingerprintTemplate;
             FingerprintQualityScore = overview.FingerprintQualityScore;
             FingerprintCapturedText = overview.FingerprintCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
@@ -234,29 +217,6 @@ public partial class ProfileViewModel : ObservableObject
         if (capture is null) return;
 
         var (success, message) = await _userService.SetFaceTemplateAsync(userId.Value, capture.ImageBytes);
-        StatusMessage = message;
-
-        if (success)
-            await LoadAsync();
-    }
-
-    [RelayCommand]
-    private async Task UpdateVoiceAsync()
-    {
-        var userId = _session.CurrentUser?.Id;
-        if (userId is null) return;
-
-        VoiceCaptureHelper.BeginEnrollment();
-        if (!await _navigation.TryGoToVoiceCaptureAsync())
-        {
-            StatusMessage = "Brak mikrofonu.";
-            return;
-        }
-
-        var capture = await VoiceCaptureHelper.CaptureAsync();
-        if (capture is null) return;
-
-        var (success, message) = await _userService.SetVoiceTemplateAsync(userId.Value, capture.WavSamples);
         StatusMessage = message;
 
         if (success)

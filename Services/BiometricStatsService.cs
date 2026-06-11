@@ -26,7 +26,6 @@ public record UserBiometricOverview(
     int TotalLogins,
     int FaceLogins,
     int PasswordLogins,
-    int VoiceLogins,
     int FingerprintLogins,
     double SuccessRate,
     List<DailyLoginStat> Last7Days,
@@ -36,10 +35,6 @@ public record UserBiometricOverview(
     double? FaceQualityScore,
     DateTime? FaceCapturedAt,
     byte[]? FacePreviewImage,
-    bool HasVoiceTemplate,
-    double? VoiceQualityScore,
-    DateTime? VoiceCapturedAt,
-    string? VoiceAudioPath,
     bool HasFingerprintTemplate,
     double? FingerprintQualityScore,
     DateTime? FingerprintCapturedAt,
@@ -83,10 +78,6 @@ public class BiometricStatsService : IBiometricStatsService
             .AsNoTracking()
             .FirstOrDefaultAsync(f => f.UserId == userId);
 
-        var voice = await _db.VoiceTemplates
-            .AsNoTracking()
-            .FirstOrDefaultAsync(v => v.UserId == userId);
-
         var fingerprint = await _db.FingerprintTemplates
             .AsNoTracking()
             .FirstOrDefaultAsync(f => f.UserId == userId);
@@ -101,7 +92,6 @@ public class BiometricStatsService : IBiometricStatsService
             total,
             attempts.Count(a => a.Method == LoginMethod.Face),
             attempts.Count(a => a.Method == LoginMethod.Password),
-            attempts.Count(a => a.Method == LoginMethod.Voice),
             attempts.Count(a => a.Method == LoginMethod.Fingerprint),
             total > 0 ? (double)success / total * 100 : 0,
             last7,
@@ -111,10 +101,6 @@ public class BiometricStatsService : IBiometricStatsService
             face?.QualityScore,
             face?.CapturedAt,
             face?.PreviewImage,
-            voice is not null,
-            voice?.QualityScore,
-            voice?.CapturedAt,
-            voice?.AudioFilePath,
             fingerprint is not null,
             fingerprint?.QualityScore,
             fingerprint?.CapturedAt,

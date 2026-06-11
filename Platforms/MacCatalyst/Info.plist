@@ -36,8 +36,6 @@
 	</array>
 	<key>NSCameraUsageDescription</key>
 	<string>MeBio potrzebuje kamery do logowania i rejestracji twarzy.</string>
-	<key>NSMicrophoneUsageDescription</key>
-	<string>MeBio potrzebuje mikrofonu do logowania i rejestracji głosu.</string>
 	<key>XSAppIconAssets</key>
 	<string>Assets.xcassets/appicon.appiconset</string>
 </dict>

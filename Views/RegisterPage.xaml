@@ -44,11 +44,6 @@
                     </HorizontalStackLayout>
 
                     <HorizontalStackLayout Spacing="10">
-                        <CheckBox IsChecked="{Binding UseVoice}" Color="{StaticResource AccentGreen}" />
-                        <Label Text="Zarejestruj głos — 3 próbki (opcjonalnie)" VerticalOptions="Center" />
-                    </HorizontalStackLayout>
-
-                    <HorizontalStackLayout Spacing="10">
                         <CheckBox IsChecked="{Binding UseFingerprint}" Color="{StaticResource AccentGreen}" />
                         <Label Text="Zarejestruj odcisk palca (opcjonalnie)" VerticalOptions="Center" />
                     </HorizontalStackLayout>

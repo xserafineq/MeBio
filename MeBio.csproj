@@ -48,10 +48,6 @@
 	</PropertyGroup>
 
 	<ItemGroup>
-		<None Include="Data\voices\**\*" />
-	</ItemGroup>
-
-	<ItemGroup>
 		<!-- App Icon -->
 		<MauiIcon Include="Resources\AppIcon\appicon.svg" ForegroundFile="Resources\AppIcon\appiconfg.svg" Color="#512BD4" />
 
@@ -67,10 +63,6 @@
 
 		<!-- Raw Assets (also remove the "Resources\Raw" prefix) -->
 		<MauiAsset Include="Resources\Raw\**" LogicalName="%(RecursiveDir)%(Filename)%(Extension)" />
-	</ItemGroup>
-
-	<ItemGroup Condition="$([MSBuild]::GetTargetPlatformIdentifier('$(TargetFramework)')) == 'windows'">
-		<PackageReference Include="NAudio" Version="2.3.0" />
 	</ItemGroup>
 
 	<ItemGroup>

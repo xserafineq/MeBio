@@ -17,7 +17,6 @@ public interface IUserService
     Task<(bool Success, string Message)> UpdateProfileAsync(int userId, string email, string? newPassword, string? confirmPassword);
     Task<(bool Success, string Message)> DeleteAsync(int id);
     Task<(bool Success, string Message)> SetFaceTemplateAsync(int userId, byte[] imageBytes);
-    Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, IReadOnlyList<byte[]> wavSamples);
     Task<(bool Success, string Message)> SetFingerprintTemplateAsync(int userId, byte[] imageBytes);
 }
 
@@ -26,7 +25,6 @@ public class UserService : IUserService
     private readonly AppDbContext _db;
     private readonly PasswordHasher _hasher;
     private readonly IFaceRecognitionService _faceService;
-    private readonly IVoiceRecognitionService _voiceService;
     private readonly IFingerprintRecognitionService _fingerprintService;
     private readonly ISessionService _session;
 
@@ -34,24 +32,22 @@ public class UserService : IUserService
         AppDbContext db,
         PasswordHasher hasher,
         IFaceRecognitionService faceService,
-        IVoiceRecognitionService voiceService,
         IFingerprintRecognitionService fingerprintService,
         ISessionService session)
     {
         _db = db;
         _hasher = hasher;
         _faceService = faceService;
-        _voiceService = voiceService;
         _fingerprintService = fingerprintService;
         _session = session;
     }
 
     public Task<List<User>> GetAllAsync() =>
-        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate).Include(u => u.FingerprintTemplate)
+        _db.Users.Include(u => u.FaceTemplate).Include(u => u.FingerprintTemplate)
             .OrderBy(u => u.LastName).ThenBy(u => u.FirstName).ToListAsync();
 
     public Task<User?> GetByIdAsync(int id) =>
-        _db.Users.Include(u => u.FaceTemplate).Include(u => u.VoiceTemplate).Include(u => u.FingerprintTemplate)
+        _db.Users.Include(u => u.FaceTemplate).Include(u => u.FingerprintTemplate)
             .FirstOrDefaultAsync(u => u.Id == id);
 
     public async Task<(bool Success, string Message)> CreateAsync(
@@ -99,7 +95,6 @@ public class UserService : IUserService
     {
         var user = await _db.Users
             .Include(u => u.FaceTemplate)
-            .Include(u => u.VoiceTemplate)
             .Include(u => u.FingerprintTemplate)
             .FirstOrDefaultAsync(u => u.Id == id);
         if (user is null)
@@ -124,8 +119,7 @@ public class UserService : IUserService
         user.Age = age;
         user.Gender = gender;
         user.Role = role;
-        user.IsVerified = isVerified || user.FaceTemplate is not null || user.VoiceTemplate is not null
-            || user.FingerprintTemplate is not null;
+        user.IsVerified = isVerified || user.FaceTemplate is not null || user.FingerprintTemplate is not null;
 
         if (!string.IsNullOrWhiteSpace(newPassword))
         {
@@ -247,37 +241,6 @@ public class UserService : IUserService
         await _db.SaveChangesAsync();
         _session.SetUser(user);
         return (true, "Biometria zapisana.");
-    }
-
-    public async Task<(bool Success, string Message)> SetVoiceTemplateAsync(int userId, IReadOnlyList<byte[]> wavSamples)
-    {
-        if (_session.CurrentUser?.Id != userId)
-            return (false, "Biometrię może zmienić tylko właściciel konta.");
-
-        var user = await _db.Users.Include(u => u.VoiceTemplate).FirstOrDefaultAsync(u => u.Id == userId);
-        if (user is null)
-            return (false, "Nie znaleziono użytkownika.");
-
-        if (wavSamples.Count < VoiceRecognitionDefaults.EnrollmentSamples)
-            return (false, $"Wymagane są {VoiceRecognitionDefaults.EnrollmentSamples} próbki głosu.");
-
-        VoiceEnrollmentResult enrollment;
-        try
-        {
-            enrollment = _voiceService.BuildEnrollment(wavSamples);
-        }
-        catch (InvalidOperationException ex)
-        {
-            return (false, ex.Message);
-        }
-
-        if (enrollment.AverageQuality < VoiceRecognitionDefaults.MinQualityScore)
-            return (false, "Jakość nagrań zbyt niska.");
-
-        await VoiceTemplatePersistence.SaveAsync(_db, user, enrollment, wavSamples);
-        await _db.SaveChangesAsync();
-        _session.SetUser(user);
-        return (true, "Głos zapisany.");
     }
 
     public async Task<(bool Success, string Message)> SetFingerprintTemplateAsync(int userId, byte[] imageBytes)

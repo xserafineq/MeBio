@@ -136,7 +136,7 @@
                 <Border Style="{StaticResource CardBorder}">
                     <VerticalStackLayout Padding="16" Spacing="8">
                         <Label Text="Skuteczność moich logowań wg metody" Style="{StaticResource FieldLabel}" />
-                        <Label Text="Hasło vs twarz (i inne biometrie w przyszłości)" FontSize="11" TextColor="{StaticResource MutedText}" />
+                        <Label Text="Hasło vs twarz vs odcisk palca" FontSize="11" TextColor="{StaticResource MutedText}" />
                         <controls:MethodEffectivenessChartView Stats="{Binding MethodStats}" HeightRequest="200" />
                     </VerticalStackLayout>
                 </Border>

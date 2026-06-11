@@ -7,7 +7,6 @@ public interface INavigationService
 {
     Task GoToRegisterAsync();
     Task<bool> TryGoToFaceCaptureAsync();
-    Task<bool> TryGoToVoiceCaptureAsync();
     Task<bool> TryGoToFingerprintCaptureAsync();
     Task GoBackAsync();
     Task GoToMainAsync();
@@ -19,16 +18,13 @@ public class NavigationService : INavigationService
 {
     private readonly IServiceProvider _services;
     private readonly ICameraAvailabilityService _cameraAvailability;
-    private readonly IMicrophoneAvailabilityService _microphoneAvailability;
 
     public NavigationService(
         IServiceProvider services,
-        ICameraAvailabilityService cameraAvailability,
-        IMicrophoneAvailabilityService microphoneAvailability)
+        ICameraAvailabilityService cameraAvailability)
     {
         _services = services;
         _cameraAvailability = cameraAvailability;
-        _microphoneAvailability = microphoneAvailability;
     }
 
     public async Task GoToRegisterAsync()
@@ -55,28 +51,6 @@ public class NavigationService : INavigationService
         catch (Exception ex)
         {
             await AlertHelper.ShowAsync("Kamera", $"Nie można uruchomić kamery: {ex.Message}");
-            return false;
-        }
-    }
-
-    public async Task<bool> TryGoToVoiceCaptureAsync()
-    {
-        var (available, message) = await _microphoneAvailability.CheckAsync();
-        if (!available)
-        {
-            await AlertHelper.ShowAsync("Mikrofon", message);
-            return false;
-        }
-
-        try
-        {
-            var page = _services.GetRequiredService<VoiceCapturePage>();
-            await GetNavigation().PushAsync(page);
-            return true;
-        }
-        catch (Exception ex)
-        {
-            await AlertHelper.ShowAsync("Mikrofon", $"Nie można uruchomić nagrywania: {ex.Message}");
             return false;
         }
     }

@@ -17,7 +17,7 @@ public static class BiometricAuthFeedback
             parts.Add($"Dopasowanie: {result.MatchScore.Value:P0}");
 
         if (!string.IsNullOrWhiteSpace(result.Message) &&
-            result.Message is not "Nie rozpoznano twarzy." and not "Nie rozpoznano głosu.")
+            result.Message is not "Nie rozpoznano twarzy." and not "Nie rozpoznano odcisku palca.")
             parts.Add(result.Message);
 
         return parts.Count > 0

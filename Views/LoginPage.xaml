@@ -43,7 +43,7 @@
                     <Label Text="Wybierz metodę (wymagany email powyżej)" Style="{StaticResource FieldLabel}"
                            HorizontalTextAlignment="Center" />
 
-                    <Grid ColumnDefinitions="*,*,*" ColumnSpacing="8">
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="8">
                         <Border Grid.Column="0" Style="{StaticResource BiometricCard}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding LoginWithFaceCommand}" />
@@ -57,18 +57,6 @@
                         </Border>
 
                         <Border Grid.Column="1" Style="{StaticResource BiometricCard}">
-                            <Border.GestureRecognizers>
-                                <TapGestureRecognizer Command="{Binding LoginWithVoiceCommand}" />
-                            </Border.GestureRecognizers>
-                            <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
-                                <Image Source="icon_voice.png" HeightRequest="44" WidthRequest="44"
-                                       HorizontalOptions="Center" />
-                                <Label Text="Głos" Style="{StaticResource BiometricCardTitle}" />
-                                <Label Text="Nagranie 3 s" Style="{StaticResource BiometricCardHint}" />
-                            </VerticalStackLayout>
-                        </Border>
-
-                        <Border Grid.Column="2" Style="{StaticResource BiometricCard}">
                             <Border.GestureRecognizers>
                                 <TapGestureRecognizer Command="{Binding LoginWithFingerprintCommand}" />
                             </Border.GestureRecognizers>

@@ -139,32 +139,6 @@
                     </VerticalStackLayout>
                 </Border>
 
-                <Border Style="{StaticResource CardBorder}">
-                    <VerticalStackLayout Padding="16" Spacing="12">
-                        <Label Text="Biometria głosu" Style="{StaticResource FieldLabel}" />
-
-                        <VerticalStackLayout Spacing="6">
-                            <Label Text="Powiedz przy nagraniu:" TextColor="{StaticResource MutedText}" FontSize="12" />
-                            <Label Text="MeBio weryfikacja głosu" TextColor="{StaticResource AccentGreen}" FontSize="15" FontAttributes="Bold" />
-                            <Label Text="Biometria zarejestrowana" TextColor="{StaticResource AccentGreen}" FontSize="13"
-                                   IsVisible="{Binding HasVoiceTemplate}" />
-                            <Label Text="Brak biometrii głosu" TextColor="{StaticResource MutedText}" FontSize="13"
-                                   IsVisible="{Binding HasVoiceTemplate, Converter={StaticResource InvertedBoolConverter}}" />
-                            <Label Text="{Binding VoiceQualityScore, StringFormat='Jakość: {0:F0}%'}"
-                                   TextColor="{StaticResource AccentGreen}" FontSize="13"
-                                   IsVisible="{Binding HasVoiceTemplate}" />
-                            <Label Text="{Binding VoiceCapturedText, StringFormat='Aktualizacja: {0}'}"
-                                   TextColor="{StaticResource MutedText}" FontSize="12"
-                                   IsVisible="{Binding HasVoiceTemplate}" />
-                            <Label Text="{Binding VoiceFilePath, StringFormat='Plik: {0}'}"
-                                   TextColor="{StaticResource MutedText}" FontSize="11"
-                                   IsVisible="{Binding HasVoiceTemplate}" />
-                            <Button Text="Zaktualizuj głos" Command="{Binding UpdateVoiceCommand}"
-                                    Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
-                        </VerticalStackLayout>
-                    </VerticalStackLayout>
-                </Border>
-
                 <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
                                    Color="{StaticResource AccentGreen}" HorizontalOptions="Center" VerticalOptions="Center" />
             </VerticalStackLayout>

@@ -9,11 +9,10 @@ public interface IAuthService
 {
     Task<(bool Success, string Message, User? User)> LoginWithPasswordAsync(string email, string password);
     Task<BiometricLoginResult> LoginWithFaceAsync(byte[] imageBytes, string email);
-    Task<BiometricLoginResult> LoginWithVoiceAsync(byte[] wavBytes, string email);
     Task<BiometricLoginResult> LoginWithFingerprintAsync(byte[] imageBytes, string email);
     Task<(bool Success, string Message)> RegisterAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender,
-        byte[]? faceImage = null, IReadOnlyList<byte[]>? voiceSamples = null, byte[]? fingerprintImage = null);
+        byte[]? faceImage = null, byte[]? fingerprintImage = null);
     Task LogoutAsync();
 }
 
@@ -22,7 +21,6 @@ public class AuthService : IAuthService
     private readonly AppDbContext _db;
     private readonly PasswordHasher _hasher;
     private readonly IFaceRecognitionService _faceService;
-    private readonly IVoiceRecognitionService _voiceService;
     private readonly IFingerprintRecognitionService _fingerprintService;
     private readonly ISessionService _session;
 
@@ -30,14 +28,12 @@ public class AuthService : IAuthService
         AppDbContext db,
         PasswordHasher hasher,
         IFaceRecognitionService faceService,
-        IVoiceRecognitionService voiceService,
         IFingerprintRecognitionService fingerprintService,
         ISessionService session)
     {
         _db = db;
         _hasher = hasher;
         _faceService = faceService;
-        _voiceService = voiceService;
         _fingerprintService = fingerprintService;
         _session = session;
     }
@@ -145,77 +141,6 @@ public class AuthService : IAuthService
         return new BiometricLoginResult(true, "Zalogowano twarzą.", user, match.Score, threshold, quality);
     }
 
-    public async Task<BiometricLoginResult> LoginWithVoiceAsync(byte[] wavBytes, string email)
-    {
-        email = email.Trim().ToLowerInvariant();
-        var user = await _db.Users
-            .Include(u => u.VoiceTemplate)
-            .FirstOrDefaultAsync(u => u.Email == email);
-
-        if (user is null)
-        {
-            await LogAttemptAsync(null, email, false, LoginMethod.Voice);
-            return new BiometricLoginResult(false, "Nie znaleziono konta z tym adresem email.", null);
-        }
-
-        if (user.VoiceTemplate is null)
-        {
-            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice);
-            return new BiometricLoginResult(false, "To konto nie ma zarejestrowanego głosu.", null);
-        }
-
-        var quality = _voiceService.ComputeQualityScore(wavBytes);
-        if (quality < VoiceRecognitionDefaults.MinLoginQualityScore)
-        {
-            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice, quality / 100);
-            return new BiometricLoginResult(
-                false,
-                "Zbyt niska jakość nagrania — mów głośniej, bliżej mikrofonu.",
-                null,
-                null,
-                null,
-                quality);
-        }
-
-        var storedEmbeddings = AudioSignalHelper.UnpackEmbeddings(user.VoiceTemplate.TemplateData);
-        if (storedEmbeddings.Count == 0)
-        {
-            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice);
-            return new BiometricLoginResult(
-                false,
-                "Profil głosu jest uszkodzony — zarejestruj głos ponownie w profilu.",
-                null,
-                null,
-                null,
-                quality);
-        }
-
-        var liveEmbedding = _voiceService.ExtractEmbedding(wavBytes);
-        var threshold = Math.Clamp(
-            user.VoiceTemplate.MatchThreshold,
-            VoiceRecognitionDefaults.MinMatchThreshold,
-            VoiceRecognitionDefaults.MaxMatchThreshold);
-        var match = _voiceService.Verify(liveEmbedding, storedEmbeddings, threshold);
-
-        if (!match.IsMatch)
-        {
-            await LogAttemptAsync(user.Id, email, false, LoginMethod.Voice, match.Score);
-            return new BiometricLoginResult(
-                false,
-                "Nie rozpoznano głosu.",
-                null,
-                match.Score,
-                threshold,
-                quality);
-        }
-
-        user.LastLoginAt = DateTime.UtcNow;
-        await _db.SaveChangesAsync();
-        await LogAttemptAsync(user.Id, email, true, LoginMethod.Voice, match.Score);
-        _session.SetUser(SnapshotUser(user));
-        return new BiometricLoginResult(true, "Zalogowano głosem.", user, match.Score, threshold, quality);
-    }
-
     public async Task<BiometricLoginResult> LoginWithFingerprintAsync(byte[] imageBytes, string email)
     {
         email = email.Trim().ToLowerInvariant();
@@ -283,7 +208,7 @@ public class AuthService : IAuthService
 
     public async Task<(bool Success, string Message)> RegisterAsync(
         string firstName, string lastName, string email, string password, int age, Gender gender,
-        byte[]? faceImage = null, IReadOnlyList<byte[]>? voiceSamples = null, byte[]? fingerprintImage = null)
+        byte[]? faceImage = null, byte[]? fingerprintImage = null)
     {
         firstName = firstName.Trim();
         lastName = lastName.Trim();
@@ -315,7 +240,7 @@ public class AuthService : IAuthService
             Age = age,
             Gender = gender,
             Role = UserRole.User,
-            IsVerified = faceImage is not null || voiceSamples is { Count: > 0 } || fingerprintImage is not null,
+            IsVerified = faceImage is not null || fingerprintImage is not null,
             CreatedAt = DateTime.UtcNow
         };
 
@@ -349,28 +274,6 @@ public class AuthService : IAuthService
                 MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold,
                 Algorithm = FaceRecognitionDefaults.AlgorithmVersion
             });
-            await _db.SaveChangesAsync();
-        }
-
-        if (voiceSamples is { Count: > 0 })
-        {
-            if (voiceSamples.Count < VoiceRecognitionDefaults.EnrollmentSamples)
-                return (false, $"Wymagane są {VoiceRecognitionDefaults.EnrollmentSamples} próbki głosu.");
-
-            VoiceEnrollmentResult enrollment;
-            try
-            {
-                enrollment = _voiceService.BuildEnrollment(voiceSamples);
-            }
-            catch (InvalidOperationException ex)
-            {
-                return (false, ex.Message);
-            }
-
-            if (enrollment.AverageQuality < VoiceRecognitionDefaults.MinQualityScore)
-                return (false, "Jakość nagrań głosu jest zbyt niska. Spróbuj ponownie.");
-
-            await VoiceTemplatePersistence.SaveAsync(_db, user, enrollment, voiceSamples);
             await _db.SaveChangesAsync();
         }
 
