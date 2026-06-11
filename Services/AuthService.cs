@@ -62,7 +62,7 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await LogAttemptAsync(user.Id, email, true, LoginMethod.Password);
-        _session.SetUser(user);
+        _session.SetUser(SnapshotUser(user));
         return (true, "Zalogowano.", user);
     }
 
@@ -85,7 +85,7 @@ public class AuthService : IAuthService
             return new BiometricLoginResult(false, "To konto nie ma zarejestrowanej twarzy.", null);
         }
 
-        if (user.FaceTemplate.Algorithm != "LbpV1")
+        if (user.FaceTemplate.Algorithm != FaceRecognitionDefaults.AlgorithmVersion)
         {
             await LogAttemptAsync(user.Id, email, false, LoginMethod.Face);
             return new BiometricLoginResult(
@@ -141,7 +141,7 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await LogAttemptAsync(user.Id, email, true, LoginMethod.Face, match.Score);
-        _session.SetUser(user);
+        _session.SetUser(SnapshotUser(user));
         return new BiometricLoginResult(true, "Zalogowano twarzą.", user, match.Score, threshold, quality);
     }
 
@@ -212,7 +212,7 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await LogAttemptAsync(user.Id, email, true, LoginMethod.Voice, match.Score);
-        _session.SetUser(user);
+        _session.SetUser(SnapshotUser(user));
         return new BiometricLoginResult(true, "Zalogowano głosem.", user, match.Score, threshold, quality);
     }
 
@@ -235,7 +235,7 @@ public class AuthService : IAuthService
             return new BiometricLoginResult(false, "To konto nie ma zarejestrowanego odcisku palca.", null);
         }
 
-        if (user.FingerprintTemplate.Algorithm != "RidgeLbpV1")
+        if (user.FingerprintTemplate.Algorithm != FingerprintRecognitionDefaults.AlgorithmVersion)
         {
             await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint);
             return new BiometricLoginResult(
@@ -259,22 +259,8 @@ public class AuthService : IAuthService
                 quality);
         }
 
-        byte[] liveTemplate;
-        try
-        {
-            liveTemplate = _fingerprintService.ExtractTemplate(imageBytes);
-        }
-        catch (InvalidOperationException ex)
-        {
-            await LogAttemptAsync(user.Id, email, false, LoginMethod.Fingerprint);
-            return new BiometricLoginResult(false, ex.Message, null, null, null, quality);
-        }
-
-        var threshold = Math.Clamp(
-            user.FingerprintTemplate.MatchThreshold,
-            FingerprintRecognitionDefaults.MinMatchThreshold,
-            FingerprintRecognitionDefaults.MaxMatchThreshold);
-        var match = _fingerprintService.Verify(liveTemplate, user.FingerprintTemplate.TemplateData, threshold);
+        var threshold = FingerprintRecognitionDefaults.DefaultMatchThreshold;
+        var match = _fingerprintService.Verify(imageBytes, user.FingerprintTemplate.TemplateData, threshold);
 
         if (!match.IsMatch)
         {
@@ -291,7 +277,7 @@ public class AuthService : IAuthService
         user.LastLoginAt = DateTime.UtcNow;
         await _db.SaveChangesAsync();
         await LogAttemptAsync(user.Id, email, true, LoginMethod.Fingerprint, match.Score);
-        _session.SetUser(user);
+        _session.SetUser(SnapshotUser(user));
         return new BiometricLoginResult(true, "Zalogowano odciskiem palca.", user, match.Score, threshold, quality);
     }
 
@@ -361,7 +347,7 @@ public class AuthService : IAuthService
                 PreviewImage = faceImage,
                 QualityScore = quality,
                 MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold,
-                Algorithm = "LbpV1"
+                Algorithm = FaceRecognitionDefaults.AlgorithmVersion
             });
             await _db.SaveChangesAsync();
         }
@@ -413,7 +399,7 @@ public class AuthService : IAuthService
                 PreviewImage = fingerprintImage,
                 QualityScore = quality,
                 MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold,
-                Algorithm = "RidgeLbpV1"
+                Algorithm = FingerprintRecognitionDefaults.AlgorithmVersion
             });
             await _db.SaveChangesAsync();
         }
@@ -426,6 +412,20 @@ public class AuthService : IAuthService
         _session.Clear();
         return Task.CompletedTask;
     }
+
+    private static User SnapshotUser(User user) => new()
+    {
+        Id = user.Id,
+        FirstName = user.FirstName,
+        LastName = user.LastName,
+        Email = user.Email,
+        Role = user.Role,
+        IsVerified = user.IsVerified,
+        Age = user.Age,
+        Gender = user.Gender,
+        CreatedAt = user.CreatedAt,
+        LastLoginAt = user.LastLoginAt
+    };
 
     private async Task LogAttemptAsync(int? userId, string? email, bool success, LoginMethod method, double? score = null)
     {

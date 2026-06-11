@@ -2,17 +2,14 @@ namespace MeBio.Services;
 
 public static class FaceRecognitionDefaults
 {
-    public const double DefaultMatchThreshold = 0.64;
-    public const double MinMatchThreshold = 0.52;
-    public const double MaxMatchThreshold = 0.74;
-    public const double MinQualityScore = 18;
-    public const double MinSharpness = 1.5;
-    public const double MinCenterVariance = 60;
-    public const double MinBrightness = 18;
-    public const double MaxBrightness = 245;
+    public const string AlgorithmVersion = "FaceArcFaceV1";
 
-    public const double MinFaceOvalSkinRatio = 0.045;
-    public const double MaxFaceOvalDarkRatio = 0.58;
-    public const double MinFaceOvalBrightness = 48;
-    public const double MinFaceOvalVariance = 90;
+    /// <summary>
+    /// Próg podobieństwa ArcFace (iloczyn skalarny embeddingów, skala ~0–1).
+    /// FaceAiSharp: &gt;= 0.42 ta sama osoba; tutaj zaostrzono do ~0.46.
+    /// </summary>
+    public const double DefaultMatchThreshold = 0.46;
+    public const double MinMatchThreshold = 0.40;
+    public const double MaxMatchThreshold = 0.55;
+    public const double MinQualityScore = 35;
 }

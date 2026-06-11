@@ -44,10 +44,11 @@
             </VerticalStackLayout>
         </Border>
 
-        <Grid Grid.Row="3" ColumnDefinitions="*,*" ColumnSpacing="12">
-            <Button Grid.Column="0" Text="Anuluj" Command="{Binding CancelCommand}" Style="{StaticResource OutlineButton}" />
-            <Button Grid.Column="1" Text="Zrób zdjęcie" Command="{Binding CaptureCommand}"
+        <Grid Grid.Row="3" RowDefinitions="Auto,Auto" ColumnDefinitions="*,*" RowSpacing="12" ColumnSpacing="12">
+            <Button Grid.Row="0" Grid.Column="0" Text="Wybierz z pliku" Command="{Binding PickFromFileCommand}" Style="{StaticResource OutlineButton}" />
+            <Button Grid.Row="0" Grid.Column="1" Text="Zrób zdjęcie" Command="{Binding CaptureCommand}"
                     Style="{StaticResource AccentButton}" IsEnabled="{Binding IsCameraReady}" />
+            <Button Grid.Row="1" Grid.ColumnSpan="2" Text="Anuluj" Command="{Binding CancelCommand}" Style="{StaticResource OutlineButton}" />
         </Grid>
 
         <ActivityIndicator Grid.RowSpan="4" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"

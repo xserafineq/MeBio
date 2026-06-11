@@ -18,15 +18,22 @@ public partial class FaceCapturePage : ContentPage
         await _vm.InitializeCameraAsync(CameraHost);
     }
 
-    protected override async void OnDisappearing()
+    protected override void OnDisappearing()
     {
-        await _vm.StopCameraAsync();
-        if (_vm.Camera is CommunityToolkit.Maui.Views.CameraView cameraView)
-        {
-            cameraView.Handler?.DisconnectHandler();
-            (cameraView as IDisposable)?.Dispose();
-        }
-        CameraHost.Children.Clear();
         base.OnDisappearing();
+        _ = ReleaseCameraSafelyAsync();
+    }
+
+    private async Task ReleaseCameraSafelyAsync()
+    {
+        try
+        {
+            await _vm.StopCameraAsync();
+            CameraHost.Children.Clear();
+        }
+        catch
+        {
+            // Strona jest niszczona podczas nawigacji — ignoruj błędy kamery.
+        }
     }
 }

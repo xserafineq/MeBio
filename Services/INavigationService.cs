@@ -106,27 +106,27 @@ public class NavigationService : INavigationService
     public Task GoBackAsync()
     {
         if (Application.Current?.Windows.FirstOrDefault()?.Page is Shell)
-            return Shell.Current.GoToAsync("..");
+            return MainThread.InvokeOnMainThreadAsync(() => Shell.Current.GoToAsync(".."));
 
-        return GetNavigation().PopAsync();
+        return MainThread.InvokeOnMainThreadAsync(() => GetNavigation().PopAsync());
     }
 
-    public Task GoToMainAsync()
-    {
-        var shell = _services.GetRequiredService<AppShell>();
-        if (Application.Current?.Windows.FirstOrDefault() is Window window)
-            window.Page = shell;
-        return Task.CompletedTask;
-    }
+    public Task GoToMainAsync() =>
+        MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var shell = _services.GetRequiredService<AppShell>();
+            if (Application.Current?.Windows.FirstOrDefault() is Window window)
+                window.Page = shell;
+        });
 
-    public Task GoToLoginAsync()
-    {
-        var login = _services.GetRequiredService<LoginPage>();
-        NavigationPage.SetHasNavigationBar(login, false);
-        if (Application.Current?.Windows.FirstOrDefault() is Window window)
-            window.Page = new NavigationPage(login);
-        return Task.CompletedTask;
-    }
+    public Task GoToLoginAsync() =>
+        MainThread.InvokeOnMainThreadAsync(() =>
+        {
+            var login = _services.GetRequiredService<LoginPage>();
+            NavigationPage.SetHasNavigationBar(login, false);
+            if (Application.Current?.Windows.FirstOrDefault() is Window window)
+                window.Page = new NavigationPage(login);
+        });
 
     public Task GoToUserEditAsync(int userId) =>
         Shell.Current.GoToAsync($"{nameof(UserEditPage)}?userId={userId}");

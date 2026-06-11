@@ -8,7 +8,7 @@ public class FingerprintTemplate
     public int UserId { get; set; }
     public byte[] TemplateData { get; set; } = [];
     public byte[]? PreviewImage { get; set; }
-    public string Algorithm { get; set; } = "RidgeLbpV1";
+    public string Algorithm { get; set; } = FingerprintRecognitionDefaults.AlgorithmVersion;
     public double QualityScore { get; set; }
     public double MatchThreshold { get; set; } = FingerprintRecognitionDefaults.DefaultMatchThreshold;
     public DateTime CapturedAt { get; set; } = DateTime.UtcNow;

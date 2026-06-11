@@ -8,7 +8,7 @@ public class FaceTemplate
     public int UserId { get; set; }
     public byte[] TemplateData { get; set; } = [];
     public byte[]? PreviewImage { get; set; }
-    public string Algorithm { get; set; } = "LbpV1";
+    public string Algorithm { get; set; } = FaceRecognitionDefaults.AlgorithmVersion;
     public double QualityScore { get; set; }
     public double MatchThreshold { get; set; } = FaceRecognitionDefaults.DefaultMatchThreshold;
     public DateTime CapturedAt { get; set; } = DateTime.UtcNow;

@@ -211,7 +211,7 @@ public class UserService : IUserService
             user.FaceTemplate.PreviewImage = imageBytes;
             user.FaceTemplate.QualityScore = quality;
             user.FaceTemplate.MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold;
-            user.FaceTemplate.Algorithm = "LbpV1";
+            user.FaceTemplate.Algorithm = FaceRecognitionDefaults.AlgorithmVersion;
             user.FaceTemplate.CapturedAt = DateTime.UtcNow;
         }
         else
@@ -223,7 +223,7 @@ public class UserService : IUserService
                 PreviewImage = imageBytes,
                 QualityScore = quality,
                 MatchThreshold = FaceRecognitionDefaults.DefaultMatchThreshold,
-                Algorithm = "LbpV1"
+                Algorithm = FaceRecognitionDefaults.AlgorithmVersion
             });
         }
 
@@ -295,7 +295,7 @@ public class UserService : IUserService
             user.FingerprintTemplate.PreviewImage = imageBytes;
             user.FingerprintTemplate.QualityScore = quality;
             user.FingerprintTemplate.MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold;
-            user.FingerprintTemplate.Algorithm = "RidgeLbpV1";
+            user.FingerprintTemplate.Algorithm = FingerprintRecognitionDefaults.AlgorithmVersion;
             user.FingerprintTemplate.CapturedAt = DateTime.UtcNow;
         }
         else
@@ -307,7 +307,7 @@ public class UserService : IUserService
                 PreviewImage = imageBytes,
                 QualityScore = quality,
                 MatchThreshold = FingerprintRecognitionDefaults.DefaultMatchThreshold,
-                Algorithm = "RidgeLbpV1"
+                Algorithm = FingerprintRecognitionDefaults.AlgorithmVersion
             });
         }
 

@@ -109,6 +109,9 @@
                         <Grid ColumnDefinitions="120,*" ColumnSpacing="16">
                             <Border Grid.Column="0" WidthRequest="120" HeightRequest="120" Stroke="{StaticResource BorderColor}"
                                     BackgroundColor="{StaticResource MidnightBlue}" StrokeShape="RoundRectangle 8">
+                                <Border.GestureRecognizers>
+                                    <TapGestureRecognizer Command="{Binding OpenFingerprintModalCommand}" />
+                                </Border.GestureRecognizers>
                                 <Grid>
                                     <Image Source="{Binding FingerprintPreview}" Aspect="AspectFill"
                                            IsVisible="{Binding HasFingerprintTemplate}" />
@@ -169,5 +172,6 @@
 
         <!-- Modal powiększenia zdjęcia twarzy -->
         <views:FacePreviewModal IsVisible="{Binding IsFaceModalOpen}" BindingContext="{Binding .}" />
+        <views:FingerprintPreviewModal IsVisible="{Binding IsFingerprintModalOpen}" BindingContext="{Binding .}" />
     </Grid>
 </ContentPage>

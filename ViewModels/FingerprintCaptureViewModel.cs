@@ -137,58 +137,7 @@ public partial class FingerprintCaptureViewModel : ObservableObject
                 await stream.CopyToAsync(ms);
                 var bytes = ms.ToArray();
 
-                QualityScore = _fingerprintService.ComputeQualityScore(bytes);
-
-                if (QualityScore < FingerprintRecognitionDefaults.MinQualityScore)
-                {
-                    StatusMessage = QualityScore < 1
-                        ? "Nie wykryto odcisku palca — ustaw palec w środku kadru."
-                        : $"Zbyt ciemne lub rozmyte ({QualityScore:F0}%) — popraw oświetlenie.";
-                    ShowAuthResult = true;
-                    AuthResultMessage = QualityScore < 1
-                        ? "Na zdjęciu nie widać odcisku. Ustaw palec na jasnym tle i przybliż do kamery."
-                        : $"Jakość: {QualityScore:F0}% (min. {FingerprintRecognitionDefaults.MinQualityScore:F0}%). Ustaw palec w środku i doświetl kadr.";
-                    return;
-                }
-
-                if (IsLoginMode)
-                {
-                    var email = FingerprintCaptureHelper.LoginEmail;
-                    if (string.IsNullOrWhiteSpace(email))
-                    {
-                        StatusMessage = "Brak adresu email do logowania.";
-                        return;
-                    }
-
-                    StatusMessage = "Weryfikacja odcisku…";
-                    var auth = await _authService.LoginWithFingerprintAsync(bytes, email);
-
-                    if (auth.Success)
-                    {
-                        StatusMessage = auth.Message;
-                        await _navigation.GoToMainAsync();
-                        FingerprintCaptureHelper.Cancel();
-                        return;
-                    }
-
-                    StatusMessage = "Spróbuj ponownie — ustaw palec w kadrze.";
-                    ShowAuthResult = true;
-                    AuthResultMessage = BiometricAuthFeedback.FormatFailure(auth);
-                    return;
-                }
-
-                try
-                {
-                    var template = _fingerprintService.ExtractTemplate(bytes);
-                    FingerprintCaptureHelper.Complete(new FingerprintCaptureResult(bytes, template, QualityScore));
-                    await _navigation.GoBackAsync();
-                }
-                catch (InvalidOperationException ex)
-                {
-                    StatusMessage = ex.Message;
-                    ShowAuthResult = true;
-                    AuthResultMessage = ex.Message;
-                }
+                await ProcessImageBytesAsync(bytes);
             }
         }
         catch (Exception ex)
@@ -198,6 +147,142 @@ public partial class FingerprintCaptureViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    [RelayCommand]
+    private async Task PickFromFileAsync()
+    {
+        if (IsBusy)
+            return;
+
+        IsBusy = true;
+        ShowAuthResult = false;
+        AuthResultMessage = string.Empty;
+
+        try
+        {
+            var customFileType = new FilePickerFileType(
+                new Dictionary<DevicePlatform, IEnumerable<string>>
+                {
+                    { DevicePlatform.iOS, new[] { "public.image" } },
+                    { DevicePlatform.Android, new[] { "image/*" } },
+                    { DevicePlatform.WinUI, new[] { ".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tif", ".tiff" } },
+                    { DevicePlatform.macOS, new[] { "public.image" } },
+                });
+
+            var options = new PickOptions
+            {
+                PickerTitle = "Wybierz obraz odcisku palca",
+                FileTypes = customFileType
+            };
+
+            var result = await FilePicker.Default.PickAsync(options);
+            if (result == null)
+            {
+                StatusMessage = "Nie wybrano pliku.";
+                return;
+            }
+
+            await using var stream = await result.OpenReadAsync();
+            byte[] bytes;
+
+            var extension = Path.GetExtension(result.FileName).ToLowerInvariant();
+            if (extension == ".tif" || extension == ".tiff")
+            {
+                try
+                {
+                    var image = Microsoft.Maui.Graphics.Platform.PlatformImage.FromStream(stream);
+                    using var msPng = new MemoryStream();
+                    image.Save(msPng, ImageFormat.Png);
+                    bytes = msPng.ToArray();
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Błąd konwersji TIFF: {ex.Message}";
+                    return;
+                }
+            }
+            else
+            {
+                using var ms = new MemoryStream();
+                await stream.CopyToAsync(ms);
+                bytes = ms.ToArray();
+            }
+
+            await ProcessImageBytesAsync(bytes);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd podczas wybierania pliku: {ex.Message}";
+        }
+        finally
+        {
+            IsBusy = false;
+        }
+    }
+
+    private async Task ProcessImageBytesAsync(byte[] bytes)
+    {
+        try
+        {
+            QualityScore = _fingerprintService.ComputeQualityScore(bytes);
+
+            if (QualityScore < FingerprintRecognitionDefaults.MinQualityScore)
+            {
+                StatusMessage = QualityScore < 1
+                    ? "Nie wykryto odcisku palca — upewnij się, że obrazek przedstawia odcisk palca."
+                    : $"Zbyt ciemne lub rozmyte ({QualityScore:F0}%) — popraw jakość obrazu.";
+                ShowAuthResult = true;
+                AuthResultMessage = QualityScore < 1
+                    ? "Na zdjęciu nie widać odcisku. Upewnij się, że wgrałeś prawidłowy plik."
+                    : $"Jakość: {QualityScore:F0}% (min. {FingerprintRecognitionDefaults.MinQualityScore:F0}%). Popraw oświetlenie/ostrość pliku.";
+                return;
+            }
+
+            if (IsLoginMode)
+            {
+                var email = FingerprintCaptureHelper.LoginEmail;
+                if (string.IsNullOrWhiteSpace(email))
+                {
+                    StatusMessage = "Brak adresu email do logowania.";
+                    return;
+                }
+
+                StatusMessage = "Weryfikacja odcisku…";
+                var auth = await _authService.LoginWithFingerprintAsync(bytes, email);
+
+                if (auth.Success)
+                {
+                    StatusMessage = auth.Message;
+                    await StopCameraAsync();
+                    FingerprintCaptureHelper.Cancel();
+                    await _navigation.GoToMainAsync();
+                    return;
+                }
+
+                StatusMessage = "Spróbuj ponownie — wgraj inny plik z odciskiem.";
+                ShowAuthResult = true;
+                AuthResultMessage = BiometricAuthFeedback.FormatFailure(auth);
+                return;
+            }
+
+            try
+            {
+                var template = _fingerprintService.ExtractTemplate(bytes);
+                FingerprintCaptureHelper.Complete(new FingerprintCaptureResult(bytes, template, QualityScore));
+                await _navigation.GoBackAsync();
+            }
+            catch (InvalidOperationException ex)
+            {
+                StatusMessage = ex.Message;
+                ShowAuthResult = true;
+                AuthResultMessage = ex.Message;
+            }
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Błąd przetwarzania obrazu: {ex.Message}";
         }
     }
 

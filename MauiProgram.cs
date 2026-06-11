@@ -24,9 +24,9 @@ public static class MauiProgram
 
         builder.Services.AddSingleton<AppDbContext>();
         builder.Services.AddSingleton<PasswordHasher>();
-        builder.Services.AddSingleton<IFaceRecognitionService, LbpFaceRecognitionService>();
+        builder.Services.AddSingleton<IFaceRecognitionService, LandmarkFaceRecognitionService>();
         builder.Services.AddSingleton<IVoiceRecognitionService, MfccVoiceRecognitionService>();
-        builder.Services.AddSingleton<IFingerprintRecognitionService, RidgeLbpFingerprintRecognitionService>();
+        builder.Services.AddSingleton<IFingerprintRecognitionService, SourceAfisFingerprintRecognitionService>();
         builder.Services.AddSingleton<IAudioRecordingService, AudioRecordingService>();
         builder.Services.AddSingleton<ICameraAvailabilityService, CameraAvailabilityService>();
         builder.Services.AddSingleton<IMicrophoneAvailabilityService, MicrophoneAvailabilityService>();

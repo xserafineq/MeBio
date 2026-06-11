@@ -14,6 +14,7 @@ public partial class ProfileViewModel : ObservableObject
     private readonly INavigationService _navigation;
     private readonly IAuthService _authService;
     private readonly IFaceRecognitionService _faceService;
+    private readonly IFingerprintRecognitionService _fingerprintService;
 
     [ObservableProperty]
     private string _firstName = string.Empty;
@@ -51,17 +52,17 @@ public partial class ProfileViewModel : ObservableObject
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(FaceModalImage))]
-    private ImageSource? _facePreviewWithMinutiae;
+    private ImageSource? _facePreviewWithLandmarks;
 
     [ObservableProperty]
-    private bool _showMinutiae;
+    private bool _showLandmarks;
 
-    partial void OnShowMinutiaeChanged(bool value)
+    partial void OnShowLandmarksChanged(bool value)
     {
         OnPropertyChanged(nameof(FaceModalImage));
     }
 
-    public ImageSource? FaceModalImage => ShowMinutiae ? FacePreviewWithMinutiae : FacePreview;
+    public ImageSource? FaceModalImage => ShowLandmarks ? FacePreviewWithLandmarks : FacePreview;
 
     [ObservableProperty]
     private bool _hasVoiceTemplate;
@@ -85,7 +86,22 @@ public partial class ProfileViewModel : ObservableObject
     private string _fingerprintCapturedText = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FingerprintModalImage))]
     private ImageSource? _fingerprintPreview;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(FingerprintModalImage))]
+    private ImageSource? _fingerprintPreviewWithMinutiae;
+
+    [ObservableProperty]
+    private bool _showMinutiae;
+
+    partial void OnShowMinutiaeChanged(bool value)
+    {
+        OnPropertyChanged(nameof(FingerprintModalImage));
+    }
+
+    public ImageSource? FingerprintModalImage => ShowMinutiae ? FingerprintPreviewWithMinutiae : FingerprintPreview;
 
     [ObservableProperty]
     private string _statusMessage = string.Empty;
@@ -96,13 +112,17 @@ public partial class ProfileViewModel : ObservableObject
     [ObservableProperty]
     private bool _isFaceModalOpen;
 
+    [ObservableProperty]
+    private bool _isFingerprintModalOpen;
+
     public ProfileViewModel(
         IUserService userService,
         IBiometricStatsService statsService,
         ISessionService session,
         INavigationService navigation,
         IAuthService authService,
-        IFaceRecognitionService faceService)
+        IFaceRecognitionService faceService,
+        IFingerprintRecognitionService fingerprintService)
     {
         _userService = userService;
         _statsService = statsService;
@@ -110,6 +130,7 @@ public partial class ProfileViewModel : ObservableObject
         _navigation = navigation;
         _authService = authService;
         _faceService = faceService;
+        _fingerprintService = fingerprintService;
     }
 
     [RelayCommand]
@@ -141,8 +162,8 @@ public partial class ProfileViewModel : ObservableObject
                 ? ImageSource.FromStream(() => new MemoryStream(bytes))
                 : null;
 
-            FacePreviewWithMinutiae = overview.FacePreviewImage is { Length: > 0 } bytes2
-                ? ImageSource.FromStream(() => new MemoryStream(_faceService.DrawMinutiae(bytes2)))
+            FacePreviewWithLandmarks = overview.FacePreviewImage is { Length: > 0 } bytes2
+                ? ImageSource.FromStream(() => new MemoryStream(_faceService.DrawLandmarks(bytes2)))
                 : null;
 
             HasVoiceTemplate = overview.HasVoiceTemplate;
@@ -155,6 +176,11 @@ public partial class ProfileViewModel : ObservableObject
             FingerprintCapturedText = overview.FingerprintCapturedAt?.ToLocalTime().ToString("dd.MM.yyyy HH:mm") ?? "—";
             FingerprintPreview = overview.FingerprintPreviewImage is { Length: > 0 } fpBytes
                 ? ImageSource.FromStream(() => new MemoryStream(fpBytes))
+                : null;
+
+            FingerprintPreviewWithMinutiae = overview.FingerprintPreviewImage is { Length: > 0 } fpImage
+                && overview.FingerprintTemplateData is { Length: > 0 } fpTemplate
+                ? ImageSource.FromStream(() => new MemoryStream(_fingerprintService.DrawMinutiae(fpImage, fpTemplate)))
                 : null;
         }
         finally
@@ -280,5 +306,18 @@ public partial class ProfileViewModel : ObservableObject
     private void CloseFaceModal()
     {
         IsFaceModalOpen = false;
+    }
+
+    [RelayCommand]
+    private void OpenFingerprintModal()
+    {
+        if (HasFingerprintTemplate)
+            IsFingerprintModalOpen = true;
+    }
+
+    [RelayCommand]
+    private void CloseFingerprintModal()
+    {
+        IsFingerprintModalOpen = false;
     }
 }

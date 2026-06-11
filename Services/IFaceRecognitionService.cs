@@ -6,5 +6,5 @@ public interface IFaceRecognitionService
     FaceMatchResult Verify(byte[] liveTemplate, byte[] storedTemplate);
     FaceMatchResult Verify(byte[] liveTemplate, byte[] storedTemplate, double threshold);
     double ComputeQualityScore(byte[] imageBytes);
-    byte[] DrawMinutiae(byte[] imageBytes);
+    byte[] DrawLandmarks(byte[] imageBytes);
 }

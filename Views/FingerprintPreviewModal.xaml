@@ -1,19 +1,17 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <ContentView xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
              xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-             x:Class="MeBio.Views.FacePreviewModal">
+             x:Class="MeBio.Views.FingerprintPreviewModal">
     <Grid BackgroundColor="#CC000000"
           HorizontalOptions="Fill"
           VerticalOptions="Fill">
-        
-        <!-- Kliknięcie w tło zamyka modal -->
+
         <BoxView BackgroundColor="Transparent" HorizontalOptions="Fill" VerticalOptions="Fill">
             <BoxView.GestureRecognizers>
-                <TapGestureRecognizer Command="{Binding CloseFaceModalCommand}" />
+                <TapGestureRecognizer Command="{Binding CloseFingerprintModalCommand}" />
             </BoxView.GestureRecognizers>
         </BoxView>
 
-        <!-- Ramka modala skalująca się automatycznie -->
         <Border Margin="40"
                 Stroke="{StaticResource BorderColor}"
                 StrokeThickness="2"
@@ -23,29 +21,29 @@
                 VerticalOptions="Center"
                 MaximumWidthRequest="500"
                 MaximumHeightRequest="640">
-            
+
             <Grid RowDefinitions="*,Auto,Auto" Padding="16" RowSpacing="10">
-                <Image Grid.Row="0" Source="{Binding FaceModalImage}" Aspect="AspectFit"
+                <Image Grid.Row="0" Source="{Binding FingerprintModalImage}" Aspect="AspectFit"
                        HorizontalOptions="Center" VerticalOptions="Center" />
 
-                <VerticalStackLayout Grid.Row="1" Spacing="4" IsVisible="{Binding ShowLandmarks}">
-                    <Label Text="Landmarki SCRFD — podgląd detekcji (logowanie: ArcFace FaceArcFaceV1)"
+                <VerticalStackLayout Grid.Row="1" Spacing="4" IsVisible="{Binding ShowMinutiae}">
+                    <Label Text="Minutiae SourceAFIS (SourceAfisMinutiaeV1):"
                            TextColor="{StaticResource MutedText}" FontSize="11" />
-                    <Label Text="● oczy (niebieski)  ● nos (żółty)  ● usta (koralowy)"
+                    <Label Text="● zakończenia linii (niebieski)  ● rozgałęzienia (zielony)"
                            TextColor="{StaticResource MutedText}" FontSize="11" />
-                    <Label Text="Dopasowanie używa embeddingu twarzy, nie samych punktów"
+                    <Label Text="Kreski pokazują kierunek minucji używanych przy dopasowaniu"
                            TextColor="{StaticResource MutedText}" FontSize="11" />
                 </VerticalStackLayout>
 
                 <Grid Grid.Row="2" ColumnDefinitions="Auto,*" ColumnSpacing="16" HorizontalOptions="Fill">
                     <HorizontalStackLayout Grid.Column="0" Spacing="8" VerticalOptions="Center">
-                        <Switch IsToggled="{Binding ShowLandmarks}" OnColor="{StaticResource AccentGreen}" />
-                        <Label Text="Pokaż landmarki" TextColor="{StaticResource TextPrimary}" 
+                        <Switch IsToggled="{Binding ShowMinutiae}" OnColor="{StaticResource AccentGreen}" />
+                        <Label Text="Pokaż minucje" TextColor="{StaticResource TextPrimary}"
                                VerticalOptions="Center" FontSize="13" />
                     </HorizontalStackLayout>
 
-                    <Label Grid.Column="1" Text="Kliknij obok, aby zamknąć" 
-                           TextColor="{StaticResource MutedText}" FontSize="11" 
+                    <Label Grid.Column="1" Text="Kliknij obok, aby zamknąć"
+                           TextColor="{StaticResource MutedText}" FontSize="11"
                            HorizontalOptions="End" VerticalOptions="Center" />
                 </Grid>
             </Grid>

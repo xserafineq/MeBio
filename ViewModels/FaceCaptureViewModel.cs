@@ -179,8 +179,9 @@ public partial class FaceCaptureViewModel : ObservableObject
                     if (auth.Success)
                     {
                         StatusMessage = auth.Message;
-                        await _navigation.GoToMainAsync();
+                        await StopCameraAsync();
                         FaceCaptureHelper.Cancel();
+                        await _navigation.GoToMainAsync();
                         return;
                     }
 

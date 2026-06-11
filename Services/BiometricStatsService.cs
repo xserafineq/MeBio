@@ -43,7 +43,8 @@ public record UserBiometricOverview(
     bool HasFingerprintTemplate,
     double? FingerprintQualityScore,
     DateTime? FingerprintCapturedAt,
-    byte[]? FingerprintPreviewImage);
+    byte[]? FingerprintPreviewImage,
+    byte[]? FingerprintTemplateData);
 
 public interface IBiometricStatsService
 {
@@ -117,7 +118,8 @@ public class BiometricStatsService : IBiometricStatsService
             fingerprint is not null,
             fingerprint?.QualityScore,
             fingerprint?.CapturedAt,
-            fingerprint?.PreviewImage);
+            fingerprint?.PreviewImage,
+            fingerprint?.TemplateData);
     }
 
     private static BiometricOverview BuildOverview(
