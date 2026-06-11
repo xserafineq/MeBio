@@ -1,0 +1,189 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MeBio.ViewModels"
+             xmlns:models="clr-namespace:MeBio.Models"
+             xmlns:controls="clr-namespace:MeBio.Controls"
+             x:Class="MeBio.Views.DashboardPage"
+             x:DataType="vm:DashboardViewModel"
+             Title="Dashboard"
+             BackgroundColor="{StaticResource AppBackground}">
+
+    <ContentPage.ToolbarItems>
+        <ToolbarItem Text="Odśwież" Command="{Binding LoadCommand}" />
+        <ToolbarItem Text="Wyloguj" Command="{Binding LogoutCommand}" />
+    </ContentPage.ToolbarItems>
+
+    <ScrollView>
+        <VerticalStackLayout Padding="16" Spacing="16">
+            <Label Text="{Binding WelcomeText}" Style="{StaticResource SectionTitle}" />
+            <Label Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}"
+                   IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            <!-- Admin -->
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsAdmin}">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Użytkownicy" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding TotalUsers}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Zweryfikowani" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding VerifiedUsers}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Logowania twarzą" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding FaceLogins}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Skuteczność systemu" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding SuccessRate, StringFormat='{0:F0}%'}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Skuteczność logowania wg metody (cały system)" Style="{StaticResource FieldLabel}" />
+                        <Label Text="Wysokość słupka = % udanych logowań · pod spodem: sukcesy/wszystkie" FontSize="11" TextColor="{StaticResource MutedText}" />
+                        <controls:MethodEffectivenessChartView Stats="{Binding MethodStats}" HeightRequest="200" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Logowania — ostatnie 7 dni (wszyscy)" Style="{StaticResource FieldLabel}" />
+                        <Label Text="Zielony = sukces, czerwony = błąd" FontSize="11" TextColor="{StaticResource MutedText}" />
+                        <controls:LoginChartView Stats="{Binding ChartStats}" HeightRequest="180" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Ostatnie próby logowania — wszyscy użytkownicy" Style="{StaticResource FieldLabel}" />
+                        <Grid ColumnDefinitions="*,Auto,Auto" Padding="8,0" ColumnSpacing="8">
+                            <Label Grid.Column="0" Text="Użytkownik / data" FontSize="11" TextColor="{StaticResource MutedText}" />
+                            <Label Grid.Column="1" Text="Metoda" FontSize="11" TextColor="{StaticResource MutedText}" WidthRequest="88" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="2" Text="Wynik" FontSize="11" TextColor="{StaticResource MutedText}" WidthRequest="72" HorizontalTextAlignment="Center" />
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding RecentAttempts}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:LoginAttempt">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Padding="8,6" ColumnSpacing="8">
+                                        <VerticalStackLayout Grid.Column="0" Spacing="2">
+                                            <Label Text="{Binding UserEmail, TargetNullValue='—'}" FontAttributes="Bold" />
+                                            <Label FontSize="11" TextColor="{StaticResource MutedText}"
+                                                   Text="{Binding AttemptedAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" />
+                                        </VerticalStackLayout>
+                                        <Border Grid.Column="1" WidthRequest="88" Padding="8,4" StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{Binding Method, Converter={StaticResource LoginMethodColorConverter}}">
+                                            <Label FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Black}"
+                                                   HorizontalTextAlignment="Center"
+                                                   Text="{Binding Method, Converter={StaticResource LoginMethodConverter}}" />
+                                        </Border>
+                                        <Border Grid.Column="2" WidthRequest="72" Padding="8,4" StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{Binding Success, Converter={StaticResource SuccessColorConverter}}">
+                                            <Label FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Black}"
+                                                   HorizontalTextAlignment="Center"
+                                                   Text="{Binding Success, Converter={StaticResource BoolToResultTextConverter}}" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+
+            <!-- User -->
+            <VerticalStackLayout Spacing="16" IsVisible="{Binding IsAdmin, Converter={StaticResource InvertedBoolConverter}}">
+                <Grid ColumnDefinitions="*,*" RowDefinitions="Auto,Auto" ColumnSpacing="12" RowSpacing="12">
+                    <Border Grid.Row="0" Grid.Column="0" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Moje logowania" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding TotalLogins}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="0" Grid.Column="1" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Skuteczność" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding SuccessRate, StringFormat='{0:F0}%'}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="0" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Twarzą" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding FaceLogins}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                    <Border Grid.Row="1" Grid.Column="1" Style="{StaticResource StatCard}">
+                        <VerticalStackLayout Spacing="4" Padding="16">
+                            <Label Text="Hasłem" Style="{StaticResource StatLabel}" />
+                            <Label Text="{Binding PasswordLogins}" Style="{StaticResource StatValue}" />
+                        </VerticalStackLayout>
+                    </Border>
+                </Grid>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Skuteczność moich logowań wg metody" Style="{StaticResource FieldLabel}" />
+                        <Label Text="Hasło vs twarz (i inne biometrie w przyszłości)" FontSize="11" TextColor="{StaticResource MutedText}" />
+                        <controls:MethodEffectivenessChartView Stats="{Binding MethodStats}" HeightRequest="200" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Moje logowania — ostatnie 7 dni" Style="{StaticResource FieldLabel}" />
+                        <controls:LoginChartView Stats="{Binding ChartStats}" HeightRequest="160" />
+                    </VerticalStackLayout>
+                </Border>
+
+                <Border Style="{StaticResource CardBorder}">
+                    <VerticalStackLayout Padding="16" Spacing="8">
+                        <Label Text="Historia moich logowań" Style="{StaticResource FieldLabel}" />
+                        <Grid ColumnDefinitions="*,Auto,Auto" Padding="8,0" ColumnSpacing="8">
+                            <Label Grid.Column="0" Text="Data" FontSize="11" TextColor="{StaticResource MutedText}" />
+                            <Label Grid.Column="1" Text="Metoda" FontSize="11" TextColor="{StaticResource MutedText}" WidthRequest="88" HorizontalTextAlignment="Center" />
+                            <Label Grid.Column="2" Text="Wynik" FontSize="11" TextColor="{StaticResource MutedText}" WidthRequest="72" HorizontalTextAlignment="Center" />
+                        </Grid>
+                        <CollectionView ItemsSource="{Binding RecentAttempts}" SelectionMode="None">
+                            <CollectionView.ItemTemplate>
+                                <DataTemplate x:DataType="models:LoginAttempt">
+                                    <Grid ColumnDefinitions="*,Auto,Auto" Padding="8,6" ColumnSpacing="8">
+                                        <Label Grid.Column="0" FontSize="12" TextColor="{StaticResource TextPrimary}"
+                                               VerticalOptions="Center"
+                                               Text="{Binding AttemptedAt, StringFormat='{0:dd.MM.yyyy HH:mm}'}" />
+                                        <Border Grid.Column="1" WidthRequest="88" Padding="8,4" StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{Binding Method, Converter={StaticResource LoginMethodColorConverter}}">
+                                            <Label FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Black}"
+                                                   HorizontalTextAlignment="Center"
+                                                   Text="{Binding Method, Converter={StaticResource LoginMethodConverter}}" />
+                                        </Border>
+                                        <Border Grid.Column="2" WidthRequest="72" Padding="8,4" StrokeThickness="0"
+                                                StrokeShape="RoundRectangle 6"
+                                                BackgroundColor="{Binding Success, Converter={StaticResource SuccessColorConverter}}">
+                                            <Label FontSize="11" FontAttributes="Bold" TextColor="{StaticResource Black}"
+                                                   HorizontalTextAlignment="Center"
+                                                   Text="{Binding Success, Converter={StaticResource BoolToResultTextConverter}}" />
+                                        </Border>
+                                    </Grid>
+                                </DataTemplate>
+                            </CollectionView.ItemTemplate>
+                        </CollectionView>
+                    </VerticalStackLayout>
+                </Border>
+            </VerticalStackLayout>
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

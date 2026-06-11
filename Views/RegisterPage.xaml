@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MeBio.ViewModels"
+             x:Class="MeBio.Views.RegisterPage"
+             x:DataType="vm:RegisterViewModel"
+             Title="Rejestracja"
+             BackgroundColor="{StaticResource AppBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="24" Spacing="16">
+            <Border Style="{StaticResource CardBorder}">
+                <VerticalStackLayout Spacing="14" Padding="20">
+                    <Label Text="Nowe konto" Style="{StaticResource SectionTitle}" />
+
+                    <Label Text="Imię" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding FirstName}" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Nazwisko" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding LastName}" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Email" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding Email}" Keyboard="Email" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Hasło" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding Password}" IsPassword="True" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Powtórz hasło" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding ConfirmPassword}" IsPassword="True" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Wiek" Style="{StaticResource FieldLabel}" />
+                    <Entry Text="{Binding AgeText}" Keyboard="Numeric" Style="{StaticResource DarkEntry}" />
+
+                    <Label Text="Płeć" Style="{StaticResource FieldLabel}" />
+                    <Picker ItemsSource="{Binding Genders}" SelectedItem="{Binding Gender}" />
+
+                    <HorizontalStackLayout Spacing="10">
+                        <CheckBox IsChecked="{Binding UseFace}" Color="{StaticResource AccentGreen}" />
+                        <Label Text="Zarejestruj twarz (opcjonalnie)" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <HorizontalStackLayout Spacing="10">
+                        <CheckBox IsChecked="{Binding UseVoice}" Color="{StaticResource AccentGreen}" />
+                        <Label Text="Zarejestruj głos (opcjonalnie)" VerticalOptions="Center" />
+                    </HorizontalStackLayout>
+
+                    <Button Text="Zarejestruj" Command="{Binding RegisterCommand}" Style="{StaticResource AccentButton}" />
+                    <Button Text="Anuluj" Command="{Binding GoBackCommand}" Style="{StaticResource OutlineButton}" />
+
+                    <Label Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource AccentGreen}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

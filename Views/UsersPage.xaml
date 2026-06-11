@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MeBio.ViewModels"
+             xmlns:models="clr-namespace:MeBio.Models"
+             x:Class="MeBio.Views.UsersPage"
+             x:DataType="vm:UsersViewModel"
+             Title="Użytkownicy"
+             BackgroundColor="{StaticResource AppBackground}">
+
+    <Grid RowDefinitions="Auto,*" Padding="16" RowSpacing="12">
+        <Button Grid.Row="0" Text="Dodaj użytkownika" Command="{Binding AddUserCommand}"
+                Style="{StaticResource AccentButton}" />
+
+        <CollectionView Grid.Row="1" ItemsSource="{Binding Users}" SelectionMode="None">
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:User">
+                    <Border Style="{StaticResource CardBorder}" Margin="0,0,0,10">
+                        <Grid ColumnDefinitions="*,Auto" Padding="14" ColumnSpacing="8">
+                            <VerticalStackLayout Grid.Column="0" Spacing="4">
+                                <Label Text="{Binding FullName}" FontAttributes="Bold" FontSize="16" />
+                                <Label FontSize="12" TextColor="{StaticResource MutedText}"
+                                       Text="{Binding Email}" />
+                                <Label FontSize="12" TextColor="{StaticResource MutedText}"
+                                       Text="{Binding Role}" />
+                                <Label FontSize="12" TextColor="{StaticResource AccentGreen}"
+                                       Text="{Binding IsVerified, StringFormat='Zweryfikowany: {0}'}" />
+                            </VerticalStackLayout>
+                            <VerticalStackLayout Grid.Column="1" Spacing="6">
+                                <Button Text="Edytuj" Style="{StaticResource SmallOutlineButton}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsersViewModel}}, Path=EditUserCommand}"
+                                        CommandParameter="{Binding .}" />
+                                <Button Text="Usuń" Style="{StaticResource SmallDangerButton}"
+                                        Command="{Binding Source={RelativeSource AncestorType={x:Type vm:UsersViewModel}}, Path=DeleteUserCommand}"
+                                        CommandParameter="{Binding .}" />
+                            </VerticalStackLayout>
+                        </Grid>
+                    </Border>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+        </CollectionView>
+
+        <Label Grid.Row="1" Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}"
+               VerticalOptions="End" />
+    </Grid>
+</ContentPage>

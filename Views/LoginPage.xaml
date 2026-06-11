@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:vm="clr-namespace:MeBio.ViewModels"
+             x:Class="MeBio.Views.LoginPage"
+             x:DataType="vm:LoginViewModel"
+             Title="MeBio — Logowanie"
+             BackgroundColor="{StaticResource AppBackground}">
+
+    <ScrollView>
+        <VerticalStackLayout Padding="32,48" Spacing="20" VerticalOptions="Center">
+
+            <Label Text="MeBio" Style="{StaticResource AppTitle}" />
+            <Label Text="System biometryczny" Style="{StaticResource AppSubtitle}" />
+
+            <Border Style="{StaticResource CardBorder}" Margin="0,16,0,0">
+                <VerticalStackLayout Spacing="18" Padding="20">
+
+                    <Label Text="Zaloguj się" Style="{StaticResource SectionTitle}" FontSize="18" />
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Email" Style="{StaticResource FieldLabel}" />
+                        <Entry Text="{Binding Email}" Placeholder="twoj@email.pl" Keyboard="Email"
+                               Style="{StaticResource DarkEntry}" />
+                    </VerticalStackLayout>
+
+                    <VerticalStackLayout Spacing="6">
+                        <Label Text="Hasło" Style="{StaticResource FieldLabel}" />
+                        <Entry Text="{Binding Password}" Placeholder="••••••••" IsPassword="True"
+                               Style="{StaticResource DarkEntry}" />
+                        <Button Text="Zaloguj hasłem" Command="{Binding LoginWithPasswordCommand}"
+                                Style="{StaticResource AccentButton}" Margin="0,6,0,0" />
+                    </VerticalStackLayout>
+
+                    <Grid ColumnDefinitions="*,Auto,*" ColumnSpacing="12" Margin="0,4">
+                        <BoxView Grid.Column="0" HeightRequest="1" Color="{StaticResource BorderColor}"
+                                 VerticalOptions="Center" />
+                        <Label Grid.Column="1" Text="lub biometria" Style="{StaticResource DividerLabel}" />
+                        <BoxView Grid.Column="2" HeightRequest="1" Color="{StaticResource BorderColor}"
+                                 VerticalOptions="Center" />
+                    </Grid>
+
+                    <Label Text="Wybierz metodę (wymagany email powyżej)" Style="{StaticResource FieldLabel}"
+                           HorizontalTextAlignment="Center" />
+
+                    <Grid ColumnDefinitions="*,*" ColumnSpacing="12">
+                        <Border Grid.Column="0" Style="{StaticResource BiometricCard}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding LoginWithFaceCommand}" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Image Source="icon_face.png" HeightRequest="44" WidthRequest="44"
+                                       HorizontalOptions="Center" />
+                                <Label Text="Twarz" Style="{StaticResource BiometricCardTitle}" />
+                                <Label Text="Skan twarzy" Style="{StaticResource BiometricCardHint}" />
+                            </VerticalStackLayout>
+                        </Border>
+
+                        <Border Grid.Column="1" Style="{StaticResource BiometricCard}">
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding LoginWithVoiceCommand}" />
+                            </Border.GestureRecognizers>
+                            <VerticalStackLayout Spacing="10" HorizontalOptions="Center">
+                                <Image Source="icon_voice.png" HeightRequest="44" WidthRequest="44"
+                                       HorizontalOptions="Center" />
+                                <Label Text="Głos" Style="{StaticResource BiometricCardTitle}" />
+                                <Label Text="Nagranie 3 s" Style="{StaticResource BiometricCardHint}" />
+                            </VerticalStackLayout>
+                        </Border>
+                    </Grid>
+
+                    <Label Text="{Binding StatusMessage}" Style="{StaticResource StatusLabel}"
+                           IsVisible="{Binding StatusMessage, Converter={StaticResource StringNotEmptyConverter}}" />
+                </VerticalStackLayout>
+            </Border>
+
+            <Button Text="Utwórz konto" Command="{Binding GoToRegisterCommand}"
+                    Style="{StaticResource LinkButton}" />
+
+            <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+                               Color="{StaticResource AccentGreen}" />
+        </VerticalStackLayout>
+    </ScrollView>
+</ContentPage>

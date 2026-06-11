@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+
+             xmlns:vm="clr-namespace:MeBio.ViewModels"
+
+             x:Class="MeBio.Views.VoiceCapturePage"
+
+             x:DataType="vm:VoiceCaptureViewModel"
+
+             Title="Nagranie głosu"
+
+             BackgroundColor="{StaticResource AppBackground}">
+
+
+
+    <Grid RowDefinitions="*,Auto,Auto" Padding="16" RowSpacing="16">
+
+        <Border Grid.Row="0" Style="{StaticResource CardBorder}">
+
+            <VerticalStackLayout Padding="24" Spacing="20" VerticalOptions="Center">
+
+                <Label Text="Powiedz dokładnie tę frazę:"
+
+                       TextColor="{StaticResource MutedText}" FontSize="13"
+
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="{Binding Phrase}"
+
+                       TextColor="{StaticResource AccentGreen}" FontSize="20" FontAttributes="Bold"
+
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="Nagranie trwa 3 sekundy. Zachowaj ten sam ton i tempo co przy rejestracji."
+
+                       TextColor="{StaticResource MutedText}" FontSize="12"
+
+                       HorizontalTextAlignment="Center" />
+
+                <Label Text="{Binding CountdownText}"
+
+                       FontSize="48" FontAttributes="Bold"
+
+                       TextColor="{StaticResource AccentGreen}"
+
+                       HorizontalOptions="Center"
+
+                       IsVisible="{Binding CountdownText, Converter={StaticResource StringNotEmptyConverter}}" />
+
+            </VerticalStackLayout>
+
+        </Border>
+
+
+
+        <Label Grid.Row="1" Text="{Binding StatusMessage}" HorizontalTextAlignment="Center"
+
+               TextColor="{StaticResource AccentGreen}" />
+
+
+
+        <Grid Grid.Row="2" ColumnDefinitions="*,*" ColumnSpacing="12">
+
+            <Button Grid.Column="0" Text="Anuluj" Command="{Binding CancelCommand}"
+
+                    Style="{StaticResource OutlineButton}" IsEnabled="{Binding IsRecording, Converter={StaticResource InvertedBoolConverter}}" />
+
+            <Button Grid.Column="1" Text="Nagraj" Command="{Binding RecordCommand}"
+
+                    Style="{StaticResource AccentButton}" IsEnabled="{Binding IsRecording, Converter={StaticResource InvertedBoolConverter}}" />
+
+        </Grid>
+
+
+
+        <ActivityIndicator Grid.RowSpan="3" IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}"
+
+                           Color="{StaticResource AccentGreen}" VerticalOptions="Center" />
+
+    </Grid>
+
+</ContentPage>
+
