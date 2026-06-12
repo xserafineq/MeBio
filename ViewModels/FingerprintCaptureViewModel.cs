@@ -1,9 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using CommunityToolkit.Maui.Views;
 using MeBio.Helpers;
 using MeBio.Services;
-using Microsoft.Maui.Controls;
 
 namespace MeBio.ViewModels;
 
@@ -13,15 +11,10 @@ public partial class FingerprintCaptureViewModel : ObservableObject
     private readonly IAuthService _authService;
     private readonly INavigationService _navigation;
 
-    [ObservableProperty] private string _statusMessage = "Uruchamianie kamery…";
+    [ObservableProperty] private string _statusMessage = string.Empty;
     [ObservableProperty] private bool _isBusy;
-    [ObservableProperty] private bool _hasCamera;
-    [ObservableProperty] private bool _isCameraReady;
     [ObservableProperty] private bool _showAuthResult;
     [ObservableProperty] private string _authResultMessage = string.Empty;
-    [ObservableProperty] private double _qualityScore;
-
-    public CameraView? Camera { get; private set; }
 
     private bool IsLoginMode => FingerprintCaptureHelper.Mode == FingerprintCaptureMode.Login;
 
@@ -35,119 +28,11 @@ public partial class FingerprintCaptureViewModel : ObservableObject
         _navigation = navigation;
     }
 
-    public async Task InitializeCameraAsync(Grid cameraHost)
+    public void Initialize()
     {
-        HasCamera = false;
-        IsCameraReady = false;
-        IsBusy = true;
         StatusMessage = IsLoginMode
-            ? "Ustaw palec z odciskiem w środku kadru i zrób zdjęcie."
-            : "Uruchamianie kamery…";
-
-        try
-        {
-            cameraHost.Children.Clear();
-            Camera = null;
-
-            var camera = new CameraView
-            {
-                HorizontalOptions = LayoutOptions.Fill,
-                VerticalOptions = LayoutOptions.Fill
-            };
-
-            cameraHost.Children.Add(camera);
-            Camera = camera;
-
-            var retries = 0;
-            while (camera.Handler == null && retries < 20)
-            {
-                await Task.Delay(50);
-                retries++;
-            }
-
-            var cameras = await camera.GetAvailableCameras(CancellationToken.None);
-            if (cameras is null || !cameras.Any())
-            {
-                cameraHost.Children.Clear();
-                Camera = null;
-                StatusMessage = "Nie wykryto kamery.";
-                return;
-            }
-
-            await camera.StartCameraPreview(CancellationToken.None);
-            HasCamera = true;
-            IsCameraReady = true;
-            StatusMessage = "Ustaw palec z odciskiem w środku kadru i zrób zdjęcie.";
-        }
-        catch (Exception ex)
-        {
-            cameraHost.Children.Clear();
-            Camera = null;
-            HasCamera = false;
-            IsCameraReady = false;
-            StatusMessage = $"Kamera niedostępna: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
-    }
-
-    public Task StopCameraAsync()
-    {
-        try
-        {
-            if (Camera is not null && IsCameraReady)
-                Camera.StopCameraPreview();
-        }
-        catch
-        {
-            // ignore
-        }
-        finally
-        {
-            IsCameraReady = false;
-        }
-
-        return Task.CompletedTask;
-    }
-
-    [RelayCommand]
-    private async Task CaptureAsync()
-    {
-        if (IsBusy || Camera is null || !IsCameraReady)
-            return;
-
-        IsBusy = true;
-        ShowAuthResult = false;
-        AuthResultMessage = string.Empty;
-
-        try
-        {
-            var stream = await Camera.CaptureImage(CancellationToken.None);
-            if (stream is null)
-            {
-                StatusMessage = "Nie udało się zrobić zdjęcia.";
-                return;
-            }
-
-            await using (stream)
-            {
-                using var ms = new MemoryStream();
-                await stream.CopyToAsync(ms);
-                var bytes = ms.ToArray();
-
-                await ProcessImageBytesAsync(bytes);
-            }
-        }
-        catch (Exception ex)
-        {
-            StatusMessage = $"Błąd kamery: {ex.Message}";
-        }
-        finally
-        {
-            IsBusy = false;
-        }
+            ? "Wybierz plik z obrazem odcisku palca."
+            : "Wybierz plik ze skanem lub zdjęciem odcisku palca.";
     }
 
     [RelayCommand]
@@ -226,17 +111,17 @@ public partial class FingerprintCaptureViewModel : ObservableObject
     {
         try
         {
-            QualityScore = _fingerprintService.ComputeQualityScore(bytes);
+            var qualityScore = _fingerprintService.ComputeQualityScore(bytes);
 
-            if (QualityScore < FingerprintRecognitionDefaults.MinQualityScore)
+            if (qualityScore < FingerprintRecognitionDefaults.MinQualityScore)
             {
-                StatusMessage = QualityScore < 1
-                    ? "Nie wykryto odcisku palca — upewnij się, że obrazek przedstawia odcisk palca."
-                    : $"Zbyt ciemne lub rozmyte ({QualityScore:F0}%) — popraw jakość obrazu.";
+                StatusMessage = qualityScore < 1
+                    ? "Nie wykryto odcisku palca — upewnij się, że plik przedstawia odcisk."
+                    : $"Zbyt ciemne lub rozmyte ({qualityScore:F0}%) — wybierz lepszy plik.";
                 ShowAuthResult = true;
-                AuthResultMessage = QualityScore < 1
-                    ? "Na zdjęciu nie widać odcisku. Upewnij się, że wgrałeś prawidłowy plik."
-                    : $"Jakość: {QualityScore:F0}% (min. {FingerprintRecognitionDefaults.MinQualityScore:F0}%). Popraw oświetlenie/ostrość pliku.";
+                AuthResultMessage = qualityScore < 1
+                    ? "Na obrazie nie widać odcisku. Wybierz prawidłowy plik."
+                    : $"Jakość: {qualityScore:F0}% (min. {FingerprintRecognitionDefaults.MinQualityScore:F0}%).";
                 return;
             }
 
@@ -255,13 +140,12 @@ public partial class FingerprintCaptureViewModel : ObservableObject
                 if (auth.Success)
                 {
                     StatusMessage = auth.Message;
-                    await StopCameraAsync();
                     FingerprintCaptureHelper.Cancel();
                     await _navigation.GoToMainAsync();
                     return;
                 }
 
-                StatusMessage = "Spróbuj ponownie — wgraj inny plik z odciskiem.";
+                StatusMessage = "Spróbuj ponownie — wybierz inny plik z odciskiem.";
                 ShowAuthResult = true;
                 AuthResultMessage = BiometricAuthFeedback.FormatFailure(auth);
                 return;
@@ -270,7 +154,7 @@ public partial class FingerprintCaptureViewModel : ObservableObject
             try
             {
                 var template = _fingerprintService.ExtractTemplate(bytes);
-                FingerprintCaptureHelper.Complete(new FingerprintCaptureResult(bytes, template, QualityScore));
+                FingerprintCaptureHelper.Complete(new FingerprintCaptureResult(bytes, template, qualityScore));
                 await _navigation.GoBackAsync();
             }
             catch (InvalidOperationException ex)

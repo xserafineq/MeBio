@@ -132,7 +132,7 @@
                                 <Label Text="{Binding FingerprintCapturedText, StringFormat='Aktualizacja: {0}'}"
                                        TextColor="{StaticResource MutedText}" FontSize="12"
                                        IsVisible="{Binding HasFingerprintTemplate}" />
-                                <Button Text="Zaktualizuj odcisk" Command="{Binding UpdateFingerprintCommand}"
+                                <Button Text="Wgraj odcisk z pliku" Command="{Binding UpdateFingerprintCommand}"
                                         Style="{StaticResource AccentButton}" Margin="0,8,0,0" />
                             </VerticalStackLayout>
                         </Grid>

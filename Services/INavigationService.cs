@@ -57,13 +57,6 @@ public class NavigationService : INavigationService
 
     public async Task<bool> TryGoToFingerprintCaptureAsync()
     {
-        var (available, message) = await _cameraAvailability.CheckAsync();
-        if (!available)
-        {
-            await AlertHelper.ShowAsync("Kamera", message);
-            return false;
-        }
-
         try
         {
             var page = _services.GetRequiredService<FingerprintCapturePage>();
@@ -72,7 +65,7 @@ public class NavigationService : INavigationService
         }
         catch (Exception ex)
         {
-            await AlertHelper.ShowAsync("Kamera", $"Nie można uruchomić kamery: {ex.Message}");
+            await AlertHelper.ShowAsync("Odcisk palca", $"Nie można otworzyć wyboru pliku: {ex.Message}");
             return false;
         }
     }

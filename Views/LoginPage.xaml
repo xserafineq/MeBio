@@ -64,7 +64,7 @@
                                 <Image Source="icon_fingerprint.png" HeightRequest="44" WidthRequest="44"
                                        HorizontalOptions="Center" />
                                 <Label Text="Odcisk" Style="{StaticResource BiometricCardTitle}" />
-                                <Label Text="Zdjęcie palca" Style="{StaticResource BiometricCardHint}" />
+                                <Label Text="Plik z odciskiem" Style="{StaticResource BiometricCardHint}" />
                             </VerticalStackLayout>
                         </Border>
                     </Grid>

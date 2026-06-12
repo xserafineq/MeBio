@@ -176,8 +176,8 @@ public class AuthService : IAuthService
             return new BiometricLoginResult(
                 false,
                 quality < 1
-                    ? "Nie wykryto odcisku palca — ustaw palec w środku kadru."
-                    : "Zbyt niska jakość zdjęcia — popraw oświetlenie.",
+                    ? "Nie wykryto odcisku palca w pliku."
+                    : "Zbyt niska jakość obrazu — wybierz lepszy plik.",
                 null,
                 null,
                 null,
@@ -282,8 +282,8 @@ public class AuthService : IAuthService
             var quality = _fingerprintService.ComputeQualityScore(fingerprintImage);
             if (quality < FingerprintRecognitionDefaults.MinQualityScore)
                 return (false, quality < 1
-                    ? "Nie wykryto odcisku palca na zdjęciu. Ustaw palec w kadrze."
-                    : "Jakość zdjęcia odcisku jest zbyt niska. Spróbuj ponownie.");
+                    ? "Nie wykryto odcisku palca w pliku."
+                    : "Jakość obrazu odcisku jest zbyt niska. Wybierz inny plik.");
 
             byte[] template;
             try

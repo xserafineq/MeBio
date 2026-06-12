@@ -101,7 +101,7 @@ public partial class RegisterViewModel : ObservableObject
                 FingerprintCaptureHelper.BeginEnrollment();
                 if (!await _navigation.TryGoToFingerprintCaptureAsync())
                 {
-                    StatusMessage = "Rejestracja odcisku anulowana — brak kamery.";
+                    StatusMessage = "Rejestracja odcisku anulowana.";
                     return;
                 }
 

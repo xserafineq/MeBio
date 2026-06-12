@@ -45,7 +45,7 @@
 
                     <HorizontalStackLayout Spacing="10">
                         <CheckBox IsChecked="{Binding UseFingerprint}" Color="{StaticResource AccentGreen}" />
-                        <Label Text="Zarejestruj odcisk palca (opcjonalnie)" VerticalOptions="Center" />
+                        <Label Text="Zarejestruj odcisk palca z pliku (opcjonalnie)" VerticalOptions="Center" />
                     </HorizontalStackLayout>
 
                     <Button Text="Zarejestruj" Command="{Binding RegisterCommand}" Style="{StaticResource AccentButton}" />

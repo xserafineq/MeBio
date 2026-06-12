@@ -231,10 +231,7 @@ public partial class ProfileViewModel : ObservableObject
 
         FingerprintCaptureHelper.BeginEnrollment();
         if (!await _navigation.TryGoToFingerprintCaptureAsync())
-        {
-            StatusMessage = "Brak kamery.";
             return;
-        }
 
         var capture = await FingerprintCaptureHelper.CaptureAsync();
         if (capture is null) return;

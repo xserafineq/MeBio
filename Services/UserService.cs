@@ -255,8 +255,8 @@ public class UserService : IUserService
         var quality = _fingerprintService.ComputeQualityScore(imageBytes);
         if (quality < FingerprintRecognitionDefaults.MinQualityScore)
             return (false, quality < 1
-                ? "Nie wykryto odcisku palca na zdjęciu."
-                : "Jakość zdjęcia zbyt niska.");
+                ? "Nie wykryto odcisku palca w pliku."
+                : "Jakość obrazu zbyt niska.");
 
         byte[] template;
         try
